@@ -145,10 +145,10 @@ cat > "$TMUX_CONF" <<'TMUXCONF'
 # ╚══════════════════════════════════════════════════════════════════════╝
 
 # ── Prefix ────────────────────────────────────────────────────────────
-# Change prefix from Ctrl+B to Ctrl+A (easier to reach)
+# Ctrl+Space as prefix (fast: thumb on Ctrl, thumb/index on Space)
 unbind C-b
-set -g prefix C-a
-bind C-a send-prefix
+set -g prefix C-Space
+bind C-Space send-prefix
 
 # ── General ───────────────────────────────────────────────────────────
 set -g default-terminal "tmux-256color"
@@ -195,8 +195,19 @@ unbind %
 bind c new-window -c "#{pane_current_path}"
 
 # ── Quick session switching ───────────────────────────────────────────
-bind S choose-session                       # prefix + S to list sessions
-bind N command-prompt -p "New session:" "new-session -s '%%'"
+bind s choose-session                       # prefix + s to list sessions
+bind n command-prompt -p "New session:" "new-session -s '%%'"
+
+# ── Direct Alt+key bindings (no prefix needed) ───────────────────────
+bind -n M-h select-pane -L                  # Alt+h  navigate left
+bind -n M-j select-pane -D                  # Alt+j  navigate down
+bind -n M-k select-pane -U                  # Alt+k  navigate up
+bind -n M-l select-pane -R                  # Alt+l  navigate right
+bind -n M-1 select-window -t 1              # Alt+1  window 1
+bind -n M-2 select-window -t 2              # Alt+2  window 2
+bind -n M-3 select-window -t 3              # Alt+3  window 3
+bind -n M-4 select-window -t 4              # Alt+4  window 4
+bind -n M-5 select-window -t 5              # Alt+5  window 5
 
 # ── Vi copy mode ──────────────────────────────────────────────────────
 setw -g mode-keys vi
@@ -355,8 +366,11 @@ echo "  2. Open Ghostty with Ctrl+Shift+Enter"
 echo "  3. tmux starts automatically — you're in a session"
 echo "  4. Run 'tmux-dev ~/myproject' for a dev layout"
 echo ""
-echo "tmux cheatsheet (prefix = Ctrl+A):"
-echo "  Ctrl+A |    split vertical      Ctrl+A -    split horizontal"
-echo "  Ctrl+A h/j/k/l  navigate panes  Ctrl+A H/J/K/L  resize panes"
-echo "  Ctrl+A c    new window           Ctrl+A S    switch session"
-echo "  Ctrl+A d    detach               Ctrl+A N    new session"
+echo "tmux cheatsheet (prefix = Ctrl+Space):"
+echo "  Ctrl+Space |    split vertical    Ctrl+Space -    split horizontal"
+echo "  Ctrl+Space h/j/k/l  navigate      Ctrl+Space H/J/K/L  resize"
+echo "  Ctrl+Space c    new window         Ctrl+Space s    switch session"
+echo "  Ctrl+Space d    detach             Ctrl+Space n    new session"
+echo ""
+echo "Direct shortcuts (no prefix):"
+echo "  Alt+h/j/k/l    navigate panes     Alt+1-5    switch window"

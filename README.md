@@ -61,27 +61,29 @@ A full tmux configuration with the features below. If a `~/.tmux.conf` already e
 
 #### Prefix Key
 
-The tmux prefix (leader key) is changed from the default `Ctrl+B` to **`Ctrl+A`** — it's easier to reach since your pinky stays on Ctrl and index finger hits A on the home row.
+The tmux prefix (leader key) is changed from the default `Ctrl+B` to **`Ctrl+Space`** — it's fast and ergonomic (thumb on Ctrl, thumb/index on Space).
 
-> Every tmux command starts with the prefix. For example: `Ctrl+A` then `|` to split vertically.
+> Every tmux command starts with the prefix. For example: `Ctrl+Space` then `|` to split vertically. Press `Ctrl+Space`, release, then press the command key.
 
 #### Keybindings
+
+All command keys are **lowercase** — no Shift needed.
 
 ##### Pane Navigation (Vim-style)
 
 | Keys | Action |
 |---|---|
-| `Ctrl+A h` | Move to pane on the **left** |
-| `Ctrl+A j` | Move to pane **below** |
-| `Ctrl+A k` | Move to pane **above** |
-| `Ctrl+A l` | Move to pane on the **right** |
+| `Ctrl+Space h` | Move to pane on the **left** |
+| `Ctrl+Space j` | Move to pane **below** |
+| `Ctrl+Space k` | Move to pane **above** |
+| `Ctrl+Space l` | Move to pane on the **right** |
 
 ##### Pane Splitting
 
 | Keys | Action |
 |---|---|
-| `Ctrl+A \|` | Split vertically (side by side) |
-| `Ctrl+A -` | Split horizontally (top/bottom) |
+| `Ctrl+Space \|` | Split vertically (side by side) |
+| `Ctrl+Space -` | Split horizontally (top/bottom) |
 
 Both open the new pane in **the same directory** you're currently in.
 
@@ -91,31 +93,43 @@ Hold the prefix, then press Shift + vim key repeatedly:
 
 | Keys | Action |
 |---|---|
-| `Ctrl+A H` | Resize pane left (5 cells) |
-| `Ctrl+A J` | Resize pane down (5 cells) |
-| `Ctrl+A K` | Resize pane up (5 cells) |
-| `Ctrl+A L` | Resize pane right (5 cells) |
+| `Ctrl+Space H` | Resize pane left (5 cells) |
+| `Ctrl+Space J` | Resize pane down (5 cells) |
+| `Ctrl+Space K` | Resize pane up (5 cells) |
+| `Ctrl+Space L` | Resize pane right (5 cells) |
+
+> Resizing is the only action that uses Shift (capital H/J/K/L) since lowercase h/j/k/l are used for navigation.
 
 ##### Windows
 
 | Keys | Action |
 |---|---|
-| `Ctrl+A c` | New window (in current directory) |
-| `Ctrl+A 1-9` | Switch to window by number |
-| `Ctrl+A n` | Next window |
-| `Ctrl+A p` | Previous window |
+| `Ctrl+Space c` | New window (in current directory) |
+| `Ctrl+Space 1-9` | Switch to window by number |
 
 ##### Sessions
 
 | Keys | Action |
 |---|---|
-| `Ctrl+A S` | List all sessions (interactive switcher) |
-| `Ctrl+A N` | Create a new named session |
-| `Ctrl+A d` | Detach from current session (it keeps running) |
+| `Ctrl+Space s` | List all sessions (interactive switcher) |
+| `Ctrl+Space n` | Create a new named session |
+| `Ctrl+Space d` | Detach from current session (it keeps running) |
+
+##### Direct Shortcuts (no prefix needed)
+
+These skip the prefix entirely — single chord, instant action:
+
+| Keys | Action |
+|---|---|
+| `Alt+h` | Navigate pane left |
+| `Alt+j` | Navigate pane down |
+| `Alt+k` | Navigate pane up |
+| `Alt+l` | Navigate pane right |
+| `Alt+1` through `Alt+5` | Switch to window 1–5 |
 
 ##### Copy Mode (Vim keys)
 
-Enter copy mode with `Ctrl+A [`, then:
+Enter copy mode with `Ctrl+Space [`, then:
 
 | Keys | Action |
 |---|---|
@@ -129,8 +143,8 @@ Enter copy mode with `Ctrl+A [`, then:
 
 | Keys | Action |
 |---|---|
-| `Ctrl+A Ctrl+S` | **Save** current session layout (tmux-resurrect) |
-| `Ctrl+A Ctrl+R` | **Restore** last saved session layout |
+| `Ctrl+Space Ctrl+s` | **Save** current session layout (tmux-resurrect) |
+| `Ctrl+Space Ctrl+r` | **Restore** last saved session layout |
 
 #### Appearance
 
@@ -214,51 +228,57 @@ The beam and prompt colors are bash-level — they are unaffected by the Catppuc
 
 ## tmux Cheatsheet
 
-All commands use the prefix **`Ctrl+A`** (press `Ctrl+A`, release, then press the key).
+All commands use the prefix **`Ctrl+Space`** (press `Ctrl+Space`, release, then press the key).
 
 ### Essential
 
 ```
-Ctrl+A d          Detach (session keeps running)
-Ctrl+A |          Split vertical
-Ctrl+A -          Split horizontal
-Ctrl+A h/j/k/l   Navigate panes (vim-style)
-Ctrl+A c          New window
-Ctrl+A 1-9        Switch to window N
-Ctrl+A S          List/switch sessions
-Ctrl+A N          New named session
+Ctrl+Space d          Detach (session keeps running)
+Ctrl+Space |          Split vertical
+Ctrl+Space -          Split horizontal
+Ctrl+Space h/j/k/l   Navigate panes (vim-style)
+Ctrl+Space c          New window
+Ctrl+Space 1-9        Switch to window N
+Ctrl+Space s          List/switch sessions
+Ctrl+Space n          New named session
+```
+
+### Direct Shortcuts (no prefix)
+
+```
+Alt+h/j/k/l    Navigate panes
+Alt+1-5        Switch to window 1–5
 ```
 
 ### Copy & Paste
 
 ```
-Ctrl+A [          Enter copy mode
+Ctrl+Space [          Enter copy mode
   h/j/k/l         Navigate
   v                Start selection
   y                Yank to clipboard
   q                Quit copy mode
-Ctrl+A ]          Paste from tmux buffer
+Ctrl+Space ]          Paste from tmux buffer
 ```
 
 ### Session Management
 
 ```
-Ctrl+A Ctrl+S     Save session (resurrect)
-Ctrl+A Ctrl+R     Restore session (resurrect)
-Ctrl+A $          Rename current session
-Ctrl+A s          Session list (lowercase)
+Ctrl+Space Ctrl+s     Save session (resurrect)
+Ctrl+Space Ctrl+r     Restore session (resurrect)
+Ctrl+Space $          Rename current session
 ```
 
 ### Windows & Panes
 
 ```
-Ctrl+A c          New window
-Ctrl+A ,          Rename window
-Ctrl+A w          Window list
-Ctrl+A &          Close window
-Ctrl+A x          Close pane
-Ctrl+A H/J/K/L   Resize pane (Shift + vim key)
-Ctrl+A z          Toggle pane zoom (fullscreen)
+Ctrl+Space c          New window
+Ctrl+Space ,          Rename window
+Ctrl+Space w          Window list
+Ctrl+Space &          Close window
+Ctrl+Space x          Close pane
+Ctrl+Space H/J/K/L   Resize pane (Shift + vim key)
+Ctrl+Space z          Toggle pane zoom (fullscreen)
 ```
 
 ### From the Command Line
