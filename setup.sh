@@ -355,28 +355,24 @@ fi
 echo "[9/9] Customizing bash prompt with alien beam effect..."
 
 BASHRC_BLOCK='
-# ── Green teleport beam prompt ────────────────────────────────────────
+# ── Alien beam Powerline prompt ───────────────────────────────────────
 _beam_prompt() {
-    printf "\r\033[K\033[38;5;46m░▒▓\033[38;5;40m█\033[38;5;46m▓▒░\033[0m"
+    printf "\r\033[K\033[38;5;54m░▒▓\033[38;5;25m█\033[38;5;30m▓▒░\033[0m"
     sleep 0.06
     printf "\r\033[K"
 }
 
 PROMPT_COMMAND="_beam_prompt"
-export PS1="\[\e[32m\]░▒▓\[\e[30;42m\] 👽 \u \[\e[32;44m\]\[\e[37;44m\] 🖥️ \h \[\e[34;43m\]\[\e[30;43m\] 📂 \w \[\e[33;49m\]\[\e[33m\]▓▒░\[\e[0m\] "
+export PS1="\[\e[38;5;54m\]░▒▓\[\e[1;38;5;255;48;5;54m\] 👾 \u \[\e[22;38;5;54;48;5;25m\]\[\e[1;38;5;255;48;5;25m\] 💻 \h \[\e[22;38;5;25;48;5;30m\]\[\e[1;38;5;255;48;5;30m\] 📁 \w \[\e[22;38;5;30;49m\]\[\e[38;5;30m\]▓▒░\[\e[0m\]\n 🛸\[\e[1;35m\]❯❯\[\e[0m\] \\$ "
 # ── end beam prompt ───────────────────────────────────────────────────
 '
 
-# Add to ~/.bashrc if not already present
-if grep -qF '_beam_prompt' "$HOME/.bashrc" 2>/dev/null; then
-    echo "  Beam prompt already configured, skipping."
-else
-    # Remove old animation if present from a previous run
-    sed -i '/_ufo_animate/d; /# Custom prompt with flying saucer emoji/d; /# ── UFO prompt/,/# ── end UFO prompt/d' "$HOME/.bashrc" 2>/dev/null || true
-    sed -i '/🛸.*PS1/d; /PROMPT_COMMAND.*_ufo/d' "$HOME/.bashrc" 2>/dev/null || true
-    echo "$BASHRC_BLOCK" >> "$HOME/.bashrc"
-    echo "  Green beam prompt added to ~/.bashrc"
-fi
+# Always replace the prompt block to pick up changes
+sed -i '/# ── .*beam.*prompt/,/# ── end beam prompt/d' "$HOME/.bashrc" 2>/dev/null || true
+sed -i '/_beam_prompt/d; /_ufo_animate/d' "$HOME/.bashrc" 2>/dev/null || true
+sed -i '/🛸.*PS1/d; /PROMPT_COMMAND.*_ufo/d' "$HOME/.bashrc" 2>/dev/null || true
+echo "$BASHRC_BLOCK" >> "$HOME/.bashrc"
+echo "  Alien beam prompt added to ~/.bashrc"
 
 # ---------------------------------------------------------------------------
 # Done
