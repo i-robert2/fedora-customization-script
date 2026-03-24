@@ -350,28 +350,28 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 9. Customize bash prompt with Powerline alien beam
+# 9. Customize bash prompt with alien beam
 # ---------------------------------------------------------------------------
 echo "[9/9] Customizing bash prompt with alien beam effect..."
 
 BASHRC_BLOCK='
-# ── Alien beam Powerline prompt ───────────────────────────────────────
+# ── Alien beam prompt ─────────────────────────────────────────────────
 _beam_prompt() {
     local g="\033[38;5;46m"
     local d="\033[38;5;34m"
     local f="\033[2;38;5;22m"
     local r="\033[0m"
-    printf "\r\033[K${f}▁▂▃${d}▅▆${g}▇█ 👾 █▇${d}▆▅${f}▃▂▁${r}"
+    printf "\r\033[K${f} ░  ▒ ░  ▓  ░ ▒  ░${r}"
     sleep 0.04
-    printf "\r\033[K${d}▂▃▅${g}▇█ 🛸 █▇${d}▅▃▂${r}"
+    printf "\r\033[K${d}  ▒▓${g}█ 🛸 █${d}▓▒${r}"
     sleep 0.04
-    printf "\r\033[K${g}▃▅▇█ ✦ █▇▅▃${r}"
+    printf "\r\033[K${g}    ✦${r}"
     sleep 0.04
     printf "\r\033[K"
 }
 
 PROMPT_COMMAND="_beam_prompt"
-export PS1="\[\e[38;5;54m\]░▒▓\[\e[1;38;5;255;48;5;54m\] 👾 \u \[\e[22;38;5;54;48;5;25m\]\[\e[1;38;5;255;48;5;25m\] 🛰️ \h \[\e[22;38;5;25;48;5;30m\]\[\e[1;38;5;255;48;5;30m\] 🗂️ \w \[\e[22;38;5;30;49m\]\[\e[38;5;30m\]▓▒░\[\e[0m\]\n 🛸\[\e[1;35m\]❯❯\[\e[1;38;5;46m\] \\$ \[\e[0m\]"
+export PS1="\[\e[1;35m\]👾 \u\[\e[0m\] \[\e[1;34m\]🛰️ \h\[\e[0m\] \[\e[1;36m\]🗂️ \w\[\e[0m\]\n 🛸\[\e[1;35m\]❯❯\[\e[1;38;5;46m\] \\$ \[\e[0m\]"
 # ── end beam prompt ───────────────────────────────────────────────────
 '
 
