@@ -26,9 +26,41 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Set Ctrl+Shift+Enter keyboard shortcut to open Ghostty
+# 2. Install JetBrainsMono Nerd Font (needed for Powerline arrows)
 # ---------------------------------------------------------------------------
-echo "[2/8] Configuring Ctrl+Shift+Enter to open Ghostty..."
+echo "[2/9] Installing JetBrainsMono Nerd Font..."
+
+FONT_DIR="$HOME/.local/share/fonts/NerdFonts"
+if ls "$FONT_DIR"/JetBrainsMonoNerd* &>/dev/null 2>&1; then
+    echo "  JetBrainsMono Nerd Font already installed, skipping."
+else
+    FONT_VERSION="3.3.0"
+    FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v${FONT_VERSION}/JetBrainsMono.zip"
+    TMP_ZIP="$(mktemp /tmp/JetBrainsMono-XXXX.zip)"
+    echo "  Downloading JetBrainsMono Nerd Font v${FONT_VERSION}..."
+    curl -fsSL -o "$TMP_ZIP" "$FONT_URL"
+    mkdir -p "$FONT_DIR"
+    unzip -qo "$TMP_ZIP" -d "$FONT_DIR"
+    rm -f "$TMP_ZIP"
+    fc-cache -f "$FONT_DIR"
+    echo "  JetBrainsMono Nerd Font installed and font cache updated."
+fi
+
+# Configure Ghostty to use the Nerd Font
+GHOSTTY_CONFIG_DIR="$HOME/.config/ghostty"
+GHOSTTY_CONFIG="$GHOSTTY_CONFIG_DIR/config"
+mkdir -p "$GHOSTTY_CONFIG_DIR"
+if [ -f "$GHOSTTY_CONFIG" ] && grep -q 'font-family' "$GHOSTTY_CONFIG"; then
+    echo "  Ghostty font already configured, skipping."
+else
+    echo 'font-family = "JetBrainsMono Nerd Font"' >> "$GHOSTTY_CONFIG"
+    echo "  Ghostty configured to use JetBrainsMono Nerd Font."
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Set Ctrl+Shift+Enter keyboard shortcut to open Ghostty
+# ---------------------------------------------------------------------------
+echo "[3/9] Configuring Ctrl+Shift+Enter to open Ghostty..."
 
 CUSTOM_KB_SCHEMA="org.gnome.settings-daemon.plugins.media-keys"
 CUSTOM_KB_BASE="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
@@ -58,9 +90,9 @@ gsettings set "$BINDING_SCHEMA" binding "<Control><Shift>Return"
 echo "  Ctrl+Shift+Enter -> Ghostty configured."
 
 # ---------------------------------------------------------------------------
-# 3. Fix CapsLock sticky / delayed toggle-off behavior (system-wide)
+# 4. Fix CapsLock sticky / delayed toggle-off behavior (system-wide)
 # ---------------------------------------------------------------------------
-echo "[3/8] Fixing CapsLock sticky behavior (user session + GDM login)..."
+echo "[4/9] Fixing CapsLock sticky behavior (user session + GDM login)..."
 
 # --- 3a. Current user session (gsettings / dconf) ---
 gsettings set org.gnome.desktop.a11y.keyboard slowkeys-enable false
@@ -108,9 +140,9 @@ sudo dconf update
 echo "  GDM login screen: same keyboard settings applied via dconf."
 
 # ---------------------------------------------------------------------------
-# 4. Install tmux + clipboard tools
+# 5. Install tmux + clipboard tools
 # ---------------------------------------------------------------------------
-echo "[4/8] Installing tmux and clipboard tools..."
+echo "[5/9] Installing tmux and clipboard tools..."
 
 if command -v tmux &>/dev/null; then
     echo "  tmux is already installed, skipping."
@@ -128,9 +160,9 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Configure tmux (~/.tmux.conf)
+# 6. Configure tmux (~/.tmux.conf)
 # ---------------------------------------------------------------------------
-echo "[5/8] Writing tmux configuration..."
+echo "[6/9] Writing tmux configuration..."
 
 TMUX_CONF="$HOME/.tmux.conf"
 
@@ -240,9 +272,9 @@ TMUXCONF
 echo "  ~/.tmux.conf written."
 
 # ---------------------------------------------------------------------------
-# 6. Install TPM (Tmux Plugin Manager) and plugins
+# 7. Install TPM (Tmux Plugin Manager) and plugins
 # ---------------------------------------------------------------------------
-echo "[6/8] Installing TPM and tmux plugins..."
+echo "[7/9] Installing TPM and tmux plugins..."
 
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 
@@ -259,9 +291,9 @@ fi
 echo "  Plugins installed (resurrect, continuum, yank, catppuccin)."
 
 # ---------------------------------------------------------------------------
-# 7. Session automation — "dev" layout + auto-attach
+# 8. Session automation — "dev" layout + auto-attach
 # ---------------------------------------------------------------------------
-echo "[7/8] Setting up tmux session automation..."
+echo "[8/9] Setting up tmux session automation..."
 
 # Create a helper script that builds a "dev" session layout
 DEV_SCRIPT="$HOME/.local/bin/tmux-dev"
@@ -318,9 +350,9 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Customize bash prompt with green teleport beam
+# 9. Customize bash prompt with Powerline alien beam
 # ---------------------------------------------------------------------------
-echo "[8/8] Customizing bash prompt with green beam effect..."
+echo "[9/9] Customizing bash prompt with alien beam effect..."
 
 BASHRC_BLOCK='
 # ── Green teleport beam prompt ────────────────────────────────────────
@@ -331,7 +363,7 @@ _beam_prompt() {
 }
 
 PROMPT_COMMAND="_beam_prompt"
-export PS1="🛸 \[\e[1;32m\]\u\[\e[0m\]@\[\e[1;34m\]\h\[\e[0m\]:\[\e[1;33m\]\w\[\e[0m\]\$ "
+export PS1="\[\e[32m\]░▒▓\[\e[30;42m\] 👽 \u \[\e[32;44m\]\[\e[37;44m\] 🖥️ \h \[\e[34;43m\]\[\e[30;43m\] 📂 \w \[\e[33;49m\]\[\e[33m\]▓▒░\[\e[0m\] "
 # ── end beam prompt ───────────────────────────────────────────────────
 '
 
@@ -358,7 +390,8 @@ echo "  - tmux installed + configured (~/.tmux.conf)"
 echo "  - TPM + plugins: resurrect, continuum, yank, catppuccin mocha"
 echo "  - tmux-dev script at ~/.local/bin/tmux-dev"
 echo "  - tmux auto-attach on Ghostty launch"
-echo "  - Bash prompt: 🛸 green beam + user@host:path$"
+echo "  - JetBrainsMono Nerd Font installed + Ghostty configured"
+echo "  - Bash prompt: Powerline alien beam style"
 echo ""
 echo "Quick start:"
 echo "  1. Log out & back in (for keyboard shortcut + dconf)"
