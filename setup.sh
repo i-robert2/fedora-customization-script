@@ -271,19 +271,20 @@ DIR="${1:-$(pwd)}"
 
 SESSION="dev"
 
-if tmux has-session -t "$SESSION" 2>/dev/null; then
-    tmux attach -t "$SESSION"
-    exit 0
+# Create the session if it doesn't exist
+if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+    tmux new-session  -d -s "$SESSION" -n "editor" -c "$DIR"
+    tmux new-window      -t "$SESSION" -n "server" -c "$DIR"
+    tmux new-window      -t "$SESSION" -n "git"    -c "$DIR"
+    tmux select-window -t "$SESSION:1"
 fi
 
-tmux new-session  -d -s "$SESSION" -n "editor" -c "$DIR"
-tmux new-window      -t "$SESSION" -n "server" -c "$DIR"
-tmux new-window      -t "$SESSION" -n "git"    -c "$DIR"
-
-# Focus on the editor window
-tmux select-window -t "$SESSION:1"
-
-tmux attach -t "$SESSION"
+# If already inside tmux, switch to the session; otherwise attach
+if [ -n "$TMUX" ]; then
+    tmux switch-client -t "$SESSION"
+else
+    tmux attach -t "$SESSION"
+fi
 DEVSCRIPT
 chmod +x "$DEV_SCRIPT"
 echo "  tmux-dev script created at ~/.local/bin/tmux-dev"
