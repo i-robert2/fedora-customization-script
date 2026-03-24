@@ -357,29 +357,10 @@ echo "[9/9] Customizing bash prompt with alien beam effect..."
 BASHRC_BLOCK='
 # ── Alien beam prompt ─────────────────────────────────────────────────
 _beam_prompt() {
-    local pw=$(( ${#USER} + ${#HOSTNAME} + ${#PWD} + 12 ))
-    local seg=$(( pw / 7 ))
-    (( seg < 1 )) && seg=1
-    local cseg=$(( pw - seg * 6 ))
-    local s1="" s2="" s3="" cm="" i
-    for ((i=0; i<seg; i++)); do s1+="░"; s2+="▒"; s3+="▓"; done
-    for ((i=0; i<cseg; i++)); do cm+="█"; done
-    local g="\033[38;5;46m" d="\033[38;5;40m" f="\033[2;38;5;22m" r="\033[0m"
-    local up="\033[A"
-    # Frame 1: scattered static on both lines
-    local sc1="" sc2="" chars=(░ ▒ " " ▓ " " ░ " " ▒)
-    for ((i=0; i<pw; i++)); do sc1+="${chars[$((RANDOM%8))]}"; done
-    for ((i=0; i<6; i++)); do sc2+="${chars[$((RANDOM%8))]}"; done
-    printf "\r\033[K${f}${sc1}${r}\n\r\033[K${f}  ${sc2}${r}${up}"
-    sleep 0.04
-    # Frame 2: beam forms on line 1, energy drips to line 2
-    printf "\r\033[K${g}${s1}${s2}${s3}${d}${cm}${g}${s3}${s2}${s1}${r}\n\r\033[K${d}  ▼▽▼${r}${up}"
-    sleep 0.04
-    # Frame 3: beam compresses, sparkle lands on line 2
-    printf "\r\033[K${d}${s3}${cm}${s3}${r}\n\r\033[K${g}  ✦${r}${up}"
-    sleep 0.04
-    # Clear both lines
-    printf "\r\033[K\n\r\033[K${up}"
+    local g="\033[38;5;46m" d="\033[38;5;40m" r="\033[0m"
+    printf "\r\033[K${g}░▒▓${d}█${g}▓▒░${r}"
+    sleep 0.06
+    printf "\r\033[K"
 }
 
 PROMPT_COMMAND="_beam_prompt"
