@@ -357,32 +357,20 @@ echo "[9/9] Customizing bash prompt with alien beam effect..."
 BASHRC_BLOCK='
 # ── Alien beam prompt ─────────────────────────────────────────────────
 _beam_prompt() {
-    local cols=$(tput cols)
-    local p="\033[1;35m"
-    local d="\033[38;5;140m"
-    local f="\033[2;38;5;60m"
-    local r="\033[0m"
-    local pad=""
-    for ((i=0; i<cols; i++)); do pad+="░"; done
-    printf "\r\033[K${f}${pad}${r}"
-    sleep 0.04
-    local pad2=""
-    local inner=$((cols/3))
-    local outer=$(( (cols - inner) / 2 ))
-    for ((i=0; i<outer; i++)); do pad2+=" "; done
-    for ((i=0; i<inner; i++)); do pad2+="▓"; done
-    printf "\r\033[K${d}${pad2}${r}"
-    sleep 0.04
-    local mid=$(( cols / 2 - 1 ))
-    local sp=""
-    for ((i=0; i<mid; i++)); do sp+=" "; done
-    printf "\r\033[K${p}${sp}✦${r}"
-    sleep 0.04
+    local pw=$(( ${#USER} + ${#HOSTNAME} + ${#PWD} + 12 ))
+    local seg=$(( pw / 7 ))
+    (( seg < 1 )) && seg=1
+    local cseg=$(( pw - seg * 6 ))
+    local s1="" s2="" s3="" cm="" i
+    for ((i=0; i<seg; i++)); do s1+="░"; s2+="▒"; s3+="▓"; done
+    for ((i=0; i<cseg; i++)); do cm+="█"; done
+    printf "\r\033[K\033[38;5;46m${s1}${s2}${s3}\033[38;5;40m${cm}\033[38;5;46m${s3}${s2}${s1}\033[0m"
+    sleep 0.06
     printf "\r\033[K"
 }
 
 PROMPT_COMMAND="_beam_prompt"
-export PS1="\[\e[1;35m\]👾\u\[\e[0m\] \[\e[1;38;5;141m\]🛸\h\[\e[0m\] \[\e[1;38;5;183m\]🗂️\w \[\e[1;38;5;156m\]\\$ \[\e[0m\]"
+export PS1="\[\e[1;35m\]👾\u\[\e[0m\] \[\e[1;38;5;80m\]🛸\h\[\e[0m\] \[\e[1;38;5;179m\]🗂️\w \[\e[1;38;5;46m\]\\$ \[\e[0m\]"
 # ── end beam prompt ───────────────────────────────────────────────────
 '
 
