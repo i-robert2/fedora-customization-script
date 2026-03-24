@@ -12,7 +12,7 @@ echo ""
 # ---------------------------------------------------------------------------
 # 1. Install Ghostty Terminal
 # ---------------------------------------------------------------------------
-echo "[1/4] Installing Ghostty terminal..."
+echo "[1/8] Installing Ghostty terminal..."
 
 if command -v ghostty &>/dev/null; then
     echo "  Ghostty is already installed, skipping."
@@ -28,7 +28,7 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Set Ctrl+Shift+Enter keyboard shortcut to open Ghostty
 # ---------------------------------------------------------------------------
-echo "[2/4] Configuring Ctrl+Shift+Enter to open Ghostty..."
+echo "[2/8] Configuring Ctrl+Shift+Enter to open Ghostty..."
 
 CUSTOM_KB_SCHEMA="org.gnome.settings-daemon.plugins.media-keys"
 CUSTOM_KB_BASE="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
@@ -60,7 +60,7 @@ echo "  Ctrl+Shift+Enter -> Ghostty configured."
 # ---------------------------------------------------------------------------
 # 3. Fix CapsLock sticky / delayed toggle-off behavior (system-wide)
 # ---------------------------------------------------------------------------
-echo "[3/4] Fixing CapsLock sticky behavior (user session + GDM login)..."
+echo "[3/8] Fixing CapsLock sticky behavior (user session + GDM login)..."
 
 # --- 3a. Current user session (gsettings / dconf) ---
 gsettings set org.gnome.desktop.a11y.keyboard slowkeys-enable false
@@ -108,9 +108,207 @@ sudo dconf update
 echo "  GDM login screen: same keyboard settings applied via dconf."
 
 # ---------------------------------------------------------------------------
-# 4. Customize bash prompt with green teleport beam
+# 4. Install tmux + clipboard tools
 # ---------------------------------------------------------------------------
-echo "[4/4] Customizing bash prompt with green beam effect..."
+echo "[4/8] Installing tmux and clipboard tools..."
+
+if command -v tmux &>/dev/null; then
+    echo "  tmux is already installed, skipping."
+else
+    sudo dnf install -y tmux
+    echo "  tmux installed."
+fi
+
+# xclip is required for tmux-yank to copy to the system clipboard
+if command -v xclip &>/dev/null; then
+    echo "  xclip is already installed, skipping."
+else
+    sudo dnf install -y xclip
+    echo "  xclip installed (needed for clipboard integration)."
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Configure tmux (~/.tmux.conf)
+# ---------------------------------------------------------------------------
+echo "[5/8] Writing tmux configuration..."
+
+TMUX_CONF="$HOME/.tmux.conf"
+
+if [ -f "$TMUX_CONF" ]; then
+    cp "$TMUX_CONF" "${TMUX_CONF}.bak.$(date +%s)"
+    echo "  Existing ~/.tmux.conf backed up."
+fi
+
+cat > "$TMUX_CONF" <<'TMUXCONF'
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  tmux configuration                                                ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+# ── Prefix ────────────────────────────────────────────────────────────
+# Change prefix from Ctrl+B to Ctrl+A (easier to reach)
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
+# ── General ───────────────────────────────────────────────────────────
+set -g default-terminal "tmux-256color"
+set -ga terminal-overrides ",*256col*:Tc"   # true-color support
+set -g escape-time 0                        # no delay after Escape (vim)
+set -g history-limit 50000                  # 50k lines scrollback
+set -g focus-events on                      # pass focus events to apps
+set -g set-clipboard on                     # OSC 52 clipboard
+
+# ── Numbering ─────────────────────────────────────────────────────────
+# Start windows and panes at 1 (matches keyboard layout)
+set -g base-index 1
+setw -g pane-base-index 1
+set -g renumber-windows on                  # re-number when a window closes
+
+# ── Mouse ─────────────────────────────────────────────────────────────
+# Click to focus panes/windows, drag to resize, scroll wheel for history
+set -g mouse on
+
+# ── Window titles ─────────────────────────────────────────────────────
+setw -g automatic-rename on                 # rename to running command
+set -g set-titles on
+set -g set-titles-string "#S / #W"
+
+# ── Vim-style pane navigation ─────────────────────────────────────────
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+# ── Pane resizing (Shift + vim keys, repeatable) ─────────────────────
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 5
+bind -r K resize-pane -U 5
+bind -r L resize-pane -R 5
+
+# ── Intuitive splits (in same directory) ──────────────────────────────
+bind | split-window -h -c "#{pane_current_path}"
+bind - split-window -v -c "#{pane_current_path}"
+unbind '"'
+unbind %
+
+# New window also keeps current directory
+bind c new-window -c "#{pane_current_path}"
+
+# ── Quick session switching ───────────────────────────────────────────
+bind S choose-session                       # prefix + S to list sessions
+bind N command-prompt -p "New session:" "new-session -s '%%'"
+
+# ── Vi copy mode ──────────────────────────────────────────────────────
+setw -g mode-keys vi
+bind -T copy-mode-vi v   send -X begin-selection
+bind -T copy-mode-vi y   send -X copy-pipe-and-cancel "xclip -selection clipboard"
+bind -T copy-mode-vi C-v send -X rectangle-toggle
+
+# ── Plugins (managed by TPM) ─────────────────────────────────────────
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-resurrect'    # save/restore sessions
+set -g @plugin 'tmux-plugins/tmux-continuum'     # auto-save every 15 min
+set -g @plugin 'tmux-plugins/tmux-yank'          # clipboard integration
+set -g @plugin 'catppuccin/tmux'                 # catppuccin theme
+
+# ── Plugin settings ───────────────────────────────────────────────────
+# Catppuccin Mocha
+set -g @catppuccin_flavor "mocha"
+
+# tmux-continuum: auto-save every 15 minutes, auto-restore on tmux start
+set -g @continuum-save-interval '15'
+set -g @continuum-restore 'on'
+
+# tmux-resurrect: capture pane contents
+set -g @resurrect-capture-pane-contents 'on'
+
+# ── Initialize TPM (keep at very bottom) ──────────────────────────────
+run '~/.tmux/plugins/tpm/tpm'
+TMUXCONF
+
+echo "  ~/.tmux.conf written."
+
+# ---------------------------------------------------------------------------
+# 6. Install TPM (Tmux Plugin Manager) and plugins
+# ---------------------------------------------------------------------------
+echo "[6/8] Installing TPM and tmux plugins..."
+
+TPM_DIR="$HOME/.tmux/plugins/tpm"
+
+if [ -d "$TPM_DIR" ]; then
+    echo "  TPM already installed, pulling latest..."
+    git -C "$TPM_DIR" pull --quiet
+else
+    git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
+    echo "  TPM cloned."
+fi
+
+# Install all plugins defined in .tmux.conf headlessly
+"$TPM_DIR/bin/install_plugins"
+echo "  Plugins installed (resurrect, continuum, yank, catppuccin)."
+
+# ---------------------------------------------------------------------------
+# 7. Session automation — "dev" layout + auto-attach
+# ---------------------------------------------------------------------------
+echo "[7/8] Setting up tmux session automation..."
+
+# Create a helper script that builds a "dev" session layout
+DEV_SCRIPT="$HOME/.local/bin/tmux-dev"
+mkdir -p "$HOME/.local/bin"
+
+cat > "$DEV_SCRIPT" <<'DEVSCRIPT'
+#!/usr/bin/env bash
+# tmux-dev — create or attach to a "dev" session with a standard layout.
+#
+# Layout:
+#   Window 1 "editor"  — full-screen, for vim/code
+#   Window 2 "server"  — for running a dev server
+#   Window 3 "git"     — for git operations
+#
+# Usage:  tmux-dev [project-directory]
+
+DIR="${1:-$(pwd)}"
+
+SESSION="dev"
+
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+    tmux attach -t "$SESSION"
+    exit 0
+fi
+
+tmux new-session  -d -s "$SESSION" -n "editor" -c "$DIR"
+tmux new-window      -t "$SESSION" -n "server" -c "$DIR"
+tmux new-window      -t "$SESSION" -n "git"    -c "$DIR"
+
+# Focus on the editor window
+tmux select-window -t "$SESSION:1"
+
+tmux attach -t "$SESSION"
+DEVSCRIPT
+chmod +x "$DEV_SCRIPT"
+echo "  tmux-dev script created at ~/.local/bin/tmux-dev"
+
+# Auto-attach: when Ghostty opens bash, attach to the last tmux session
+# (or create a default one). Only runs in interactive non-tmux shells.
+AUTOATTACH_BLOCK='
+# ── tmux auto-attach ──────────────────────────────────────────────────
+if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -t 0 ]; then
+    tmux attach 2>/dev/null || tmux new-session -s main
+fi
+# ── end tmux auto-attach ─────────────────────────────────────────────
+'
+
+if grep -qF 'tmux auto-attach' "$HOME/.bashrc" 2>/dev/null; then
+    echo "  Auto-attach already configured, skipping."
+else
+    echo "$AUTOATTACH_BLOCK" >> "$HOME/.bashrc"
+    echo "  Auto-attach added to ~/.bashrc (attaches to last session or creates 'main')."
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Customize bash prompt with green teleport beam
+# ---------------------------------------------------------------------------
+echo "[8/8] Customizing bash prompt with green beam effect..."
 
 BASHRC_BLOCK='
 # ── Green teleport beam prompt ────────────────────────────────────────
@@ -143,7 +341,21 @@ echo ""
 echo "=== Setup complete! ==="
 echo "  - Ghostty terminal installed"
 echo "  - Ctrl+Shift+Enter opens Ghostty"
-echo "  - CapsLock responsiveness improved"
+echo "  - CapsLock responsiveness improved (user + GDM)"
+echo "  - tmux installed + configured (~/.tmux.conf)"
+echo "  - TPM + plugins: resurrect, continuum, yank, catppuccin mocha"
+echo "  - tmux-dev script at ~/.local/bin/tmux-dev"
+echo "  - tmux auto-attach on Ghostty launch"
 echo "  - Bash prompt: 🛸 green beam + user@host:path$"
 echo ""
-echo "Log out and back in if the keyboard shortcut doesn't take effect immediately."
+echo "Quick start:"
+echo "  1. Log out & back in (for keyboard shortcut + dconf)"
+echo "  2. Open Ghostty with Ctrl+Shift+Enter"
+echo "  3. tmux starts automatically — you're in a session"
+echo "  4. Run 'tmux-dev ~/myproject' for a dev layout"
+echo ""
+echo "tmux cheatsheet (prefix = Ctrl+A):"
+echo "  Ctrl+A |    split vertical      Ctrl+A -    split horizontal"
+echo "  Ctrl+A h/j/k/l  navigate panes  Ctrl+A H/J/K/L  resize panes"
+echo "  Ctrl+A c    new window           Ctrl+A S    switch session"
+echo "  Ctrl+A d    detach               Ctrl+A N    new session"
