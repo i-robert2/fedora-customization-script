@@ -108,65 +108,32 @@ sudo dconf update
 echo "  GDM login screen: same keyboard settings applied via dconf."
 
 # ---------------------------------------------------------------------------
-# 4. Customize bash prompt with UFO animation
+# 4. Customize bash prompt with green teleport beam
 # ---------------------------------------------------------------------------
-echo "[4/4] Customizing bash prompt with UFO animation..."
+echo "[4/4] Customizing bash prompt with green beam effect..."
 
 BASHRC_BLOCK='
-# ── UFO prompt animation ──────────────────────────────────────────────
-_ufo_animate() {
-    local cols
-    cols=$(tput cols 2>/dev/null || echo 60)
-
-    local frames=("  👽" " 👽 " "👽  " " 👽 " "  👽")
-    local ufo="🛸"
-    local beam_chars=("." ":" "|" "█" "▀" "░" "▒" "▓")
-
-    # Phase 1 — UFO flies in from the left
-    local fly_len=$(( cols < 30 ? cols : 30 ))
-    for (( i=0; i<fly_len; i++ )); do
-        printf "\r%*s" "$i" ""
-        printf "%s" "$ufo"
-        sleep 0.02
-    done
-
-    # Phase 2 — tractor beam dropping down
-    printf "\r%*s" "$fly_len" ""
-    printf "%s" "$ufo"
-    local beam_line=""
-    for (( j=0; j<4; j++ )); do
-        beam_line+="${beam_chars[$j]}"
-        printf "\r%*s%s %s" "$fly_len" "" "$ufo" "$beam_line"
-        sleep 0.04
-    done
-
-    # Phase 3 — alien appears from beam
-    printf "\r%*s%s ·.¸.· 👽" "$fly_len" "" "$ufo"
-    sleep 0.12
-
-    # Phase 4 — beam retracts and UFO zips away
-    for (( k=fly_len; k<cols-2; k+=2 )); do
-        printf "\r\033[K%*s%s" "$k" "" "$ufo"
-        sleep 0.01
-    done
-
-    # Clean up the animation line
+# ── Green teleport beam prompt ────────────────────────────────────────
+_beam_prompt() {
+    printf "\r\033[K\033[38;5;46m░▒▓\033[38;5;40m█\033[38;5;46m▓▒░\033[0m"
+    sleep 0.06
     printf "\r\033[K"
 }
 
-PROMPT_COMMAND="_ufo_animate"
+PROMPT_COMMAND="_beam_prompt"
 export PS1="🛸 \[\e[1;32m\]\u\[\e[0m\]@\[\e[1;34m\]\h\[\e[0m\]:\[\e[1;33m\]\w\[\e[0m\]\$ "
-# ── end UFO prompt ────────────────────────────────────────────────────
+# ── end beam prompt ───────────────────────────────────────────────────
 '
 
 # Add to ~/.bashrc if not already present
-if grep -qF '_ufo_animate' "$HOME/.bashrc" 2>/dev/null; then
-    echo "  UFO animation already configured, skipping."
+if grep -qF '_beam_prompt' "$HOME/.bashrc" 2>/dev/null; then
+    echo "  Beam prompt already configured, skipping."
 else
-    # Remove old static 🛸 prompt if present from a previous run
-    sed -i '/# Custom prompt with flying saucer emoji/d; /🛸.*PS1/d' "$HOME/.bashrc" 2>/dev/null || true
+    # Remove old animation if present from a previous run
+    sed -i '/_ufo_animate/d; /# Custom prompt with flying saucer emoji/d; /# ── UFO prompt/,/# ── end UFO prompt/d' "$HOME/.bashrc" 2>/dev/null || true
+    sed -i '/🛸.*PS1/d; /PROMPT_COMMAND.*_ufo/d' "$HOME/.bashrc" 2>/dev/null || true
     echo "$BASHRC_BLOCK" >> "$HOME/.bashrc"
-    echo "  UFO animation prompt added to ~/.bashrc"
+    echo "  Green beam prompt added to ~/.bashrc"
 fi
 
 # ---------------------------------------------------------------------------
@@ -177,6 +144,6 @@ echo "=== Setup complete! ==="
 echo "  - Ghostty terminal installed"
 echo "  - Ctrl+Shift+Enter opens Ghostty"
 echo "  - CapsLock responsiveness improved"
-echo "  - Bash prompt: 🛸 UFO animation + user@host:path$"
+echo "  - Bash prompt: 🛸 green beam + user@host:path$"
 echo ""
 echo "Log out and back in if the keyboard shortcut doesn't take effect immediately."
