@@ -77,23 +77,22 @@ mod_font() {
         echo "  Ghostty configured to use JetBrainsMono Nerd Font."
     fi
 
-    # Add keybindings for word navigation and selection
+    # Add keybindings for word navigation and line selection
     if grep -q 'ctrl+left' "$GHOSTTY_CONFIG" 2>/dev/null; then
-        echo "  Ghostty keybindings already configured, skipping."
-    else
+        # Remove old keybindings to replace with corrected ones
+        sed -i '/# Word navigation/,/^$/d; /# Word selection/,/^$/d; /# Line selection/,/^$/d' "$GHOSTTY_CONFIG"
+        sed -i '/ctrl+left\|ctrl+right\|ctrl+shift+left\|ctrl+shift+right\|shift+home\|shift+end/d' "$GHOSTTY_CONFIG"
+    fi
+    if ! grep -q 'esc:b' "$GHOSTTY_CONFIG" 2>/dev/null; then
         cat >> "$GHOSTTY_CONFIG" <<'GHOSTTYKEYS'
 
-# Word navigation: Ctrl+Left/Right jumps by word (sends ESC-b / ESC-f to readline)
-keybind = ctrl+left=text:\x1bb
-keybind = ctrl+right=text:\x1bf
+# Word navigation: Ctrl+Left/Right jumps by word
+keybind = ctrl+left=esc:b
+keybind = ctrl+right=esc:f
 
-# Word selection: Ctrl+Shift+Left/Right
-keybind = ctrl+shift+left=adjust_selection:left_word
-keybind = ctrl+shift+right=adjust_selection:right_word
-
-# Line selection: Shift+Home/End
-keybind = shift+home=adjust_selection:home
-keybind = shift+end=adjust_selection:end
+# Line selection: Shift+Home/End selects to start/end of line
+keybind = shift+home=adjust_selection:beginning_of_line
+keybind = shift+end=adjust_selection:end_of_line
 GHOSTTYKEYS
         echo "  Ghostty keybindings configured (word jump, word select, line select)."
     fi
