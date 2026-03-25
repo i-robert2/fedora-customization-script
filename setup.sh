@@ -610,16 +610,39 @@ ROFICONF
 mod_dock() {
     echo "[dock] Configuring auto-hiding bottom dock (Dash to Dock)..."
 
-    # --- Install Dash to Dock GNOME extension ---
+    EXT_UUID="dash-to-dock@micxgx.gmail.com"
+    EXT_DIR="${HOME}/.local/share/gnome-shell/extensions/${EXT_UUID}"
+
+    # --- Remove outdated distro-packaged version (often incompatible) ---
     if dnf list installed gnome-shell-extension-dash-to-dock &>/dev/null 2>&1; then
-        echo "  Dash to Dock extension already installed, skipping."
-    else
-        sudo dnf install -y gnome-shell-extension-dash-to-dock
-        echo "  Dash to Dock extension installed."
+        echo "  Removing outdated distro-packaged Dash to Dock..."
+        sudo dnf remove -y gnome-shell-extension-dash-to-dock
     fi
 
-    # --- Enable the extension via dconf (reliable, doesn't need Shell running) ---
-    EXT_UUID="dash-to-dock@micxgx.gmail.com"
+    # --- Install from extensions.gnome.org (has latest compatible builds) ---
+    if gnome-extensions info "$EXT_UUID" &>/dev/null; then
+        echo "  Dash to Dock already recognised by GNOME Shell, skipping download."
+    else
+        echo "  Downloading Dash to Dock from extensions.gnome.org..."
+        sudo dnf install -y unzip 2>/dev/null || true
+
+        GNOME_VER=$(gnome-shell --version | grep -oP '\d+' | head -1)
+        TMPZIP=$(mktemp /tmp/dash-to-dock-XXXXXX.zip)
+
+        # Try the API for the exact download URL; fall back to known v103
+        DL_PATH=$(curl -sf "https://extensions.gnome.org/extension-info/?uuid=${EXT_UUID}&shell_version=${GNOME_VER}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['download_url'])" 2>/dev/null) \
+            || DL_PATH="/extension-data/dash-to-dockmicxgx.gmail.com.v103.shell-extension.zip"
+
+        curl -fL -o "$TMPZIP" "https://extensions.gnome.org${DL_PATH}"
+
+        mkdir -p "$EXT_DIR"
+        unzip -o "$TMPZIP" -d "$EXT_DIR"
+        rm -f "$TMPZIP"
+        echo "  Dash to Dock installed from extensions.gnome.org."
+    fi
+
+    # --- Enable the extension ---
     gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
 
     # Also enable directly in dconf to ensure it persists
@@ -630,34 +653,22 @@ mod_dock() {
         NEW_EXTS="${CURRENT_EXTS%]*}, '$EXT_UUID']"
         dconf write /org/gnome/shell/enabled-extensions "$NEW_EXTS"
     fi
-    # Disable the GNOME "extension-disable" override so user extensions load
     dconf write /org/gnome/shell/disable-user-extensions "false"
-    echo "  Extension enabled (via dconf)."
+    echo "  Extension enabled."
 
-    # --- Configure via dconf (works even before GNOME loads the schema) ---
+    # --- Configure via dconf ---
     DCONF_PATH="/org/gnome/shell/extensions/dash-to-dock"
 
-    # Position at the bottom of the screen
     dconf write "$DCONF_PATH/dock-position" "'BOTTOM'"
-
-    # Auto-hide: dock slides away when not in use
     dconf write "$DCONF_PATH/dock-fixed" "false"
     dconf write "$DCONF_PATH/autohide" "true"
     dconf write "$DCONF_PATH/intellihide" "true"
     dconf write "$DCONF_PATH/intellihide-mode" "'ALL_WINDOWS'"
-
-    # Don't show in fullscreen
     dconf write "$DCONF_PATH/autohide-in-fullscreen" "false"
-
-    # Animation speed — snappy reveal/hide
     dconf write "$DCONF_PATH/animation-time" "0.2"
     dconf write "$DCONF_PATH/hide-delay" "0.2"
     dconf write "$DCONF_PATH/show-delay" "0.0"
-
-    # Icon size (48 px)
     dconf write "$DCONF_PATH/dash-max-icon-size" "48"
-
-    # Don't extend dock across full width
     dconf write "$DCONF_PATH/extend-height" "false"
 
     echo "  Dock configured: auto-hiding bottom dock, reveals on mouse hover."
