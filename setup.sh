@@ -76,6 +76,27 @@ mod_font() {
         echo 'font-family = "JetBrainsMono Nerd Font"' >> "$GHOSTTY_CONFIG"
         echo "  Ghostty configured to use JetBrainsMono Nerd Font."
     fi
+
+    # Add keybindings for word navigation and selection
+    if grep -q 'ctrl+left' "$GHOSTTY_CONFIG" 2>/dev/null; then
+        echo "  Ghostty keybindings already configured, skipping."
+    else
+        cat >> "$GHOSTTY_CONFIG" <<'GHOSTTYKEYS'
+
+# Word navigation: Ctrl+Left/Right jumps by word (sends ESC-b / ESC-f to readline)
+keybind = ctrl+left=text:\x1bb
+keybind = ctrl+right=text:\x1bf
+
+# Word selection: Ctrl+Shift+Left/Right
+keybind = ctrl+shift+left=adjust_selection:left_word
+keybind = ctrl+shift+right=adjust_selection:right_word
+
+# Line selection: Shift+Home/End
+keybind = shift+home=adjust_selection:home
+keybind = shift+end=adjust_selection:end
+GHOSTTYKEYS
+        echo "  Ghostty keybindings configured (word jump, word select, line select)."
+    fi
 }
 
 # ── Module: keybinding ────────────────────────────────────────────────────
