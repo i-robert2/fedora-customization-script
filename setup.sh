@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt tools rofi dock)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi dock)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -26,6 +26,7 @@ declare -A MODULE_DESC=(
     [tools]="Install CLI tools (bat, eza, fd, fzf, htop, jq, ncdu, ripgrep, duf, tldr)"
     [rofi]="Install and configure rofi app launcher + Catppuccin theme"
     [dock]="Auto-hiding bottom dock (Dash to Dock extension)"
+    [greeting]="UFO landing animation on terminal open"
 )
 
 # ── Module: ghostty ───────────────────────────────────────────────────────
@@ -387,6 +388,192 @@ export PS1="\[\e[1;35m\]👾\u\[\e[0m\] \[\e[1;38;5;80m\]🛸\h\[\e[0m\] \[\e[1;
     sed -i '/🛸.*PS1/d; /PROMPT_COMMAND.*_ufo/d' "$HOME/.bashrc" 2>/dev/null || true
     echo "$BASHRC_BLOCK" >> "$HOME/.bashrc"
     echo "  Alien beam prompt added to ~/.bashrc"
+}
+
+# ── Module: greeting ──────────────────────────────────────────────────────
+mod_greeting() {
+    echo "[greeting] Installing UFO greeting animation..."
+
+    mkdir -p "$HOME/.local/bin"
+    GREETING_SCRIPT="$HOME/.local/bin/ufo-greeting"
+
+    cat > "$GREETING_SCRIPT" <<'UFOSCRIPT'
+#!/usr/bin/env bash
+# Pixel-art UFO greeting — colored block characters for a retro pixel look.
+# A saucer flies in, beams down an alien who says howdy.
+# Skips if not interactive, inside tmux, or terminal too small.
+
+[[ ! -t 1 ]] && exit 0
+[[ -n "$TMUX" ]] && exit 0
+
+COLS=$(tput cols 2>/dev/null || echo 80)
+ROWS=$(tput lines 2>/dev/null || echo 24)
+[[ $COLS -lt 60 || $ROWS -lt 22 ]] && exit 0
+
+# ── Color palette (256-color) ─────────────────────────────────────────
+# Index: 0=transparent  1=dk_green  2=bright_green  3=white  4=purple
+#        5=orange       6=lt_grey   7=dk_grey       8=navy   9=yellow
+PAL=(0 22 46 255 141 208 249 240 17 226)
+
+# ── Sprite data ───────────────────────────────────────────────────────
+# Each character = one pixel rendered as "██".  '0' = transparent (2 spaces).
+
+UFO=(
+    "000002220000000"
+    "000022322200000"
+    "000122222400000"
+    "001222222450000"
+    "086666666666800"
+    "869666666696800"
+    "086666666668000"
+    "008877777880000"
+    "000008888000000"
+)
+UFO_W=15
+UFO_H=9
+
+ALIEN=(
+    "000222000"
+    "002222200"
+    "022323220"
+    "022222220"
+    "002222200"
+    "000222000"
+    "002222200"
+    "002020200"
+    "000202000"
+    "002200220"
+)
+ALIEN_W=9
+ALIEN_H=10
+
+# ── Rendering ─────────────────────────────────────────────────────────
+draw_sprite() {
+    local -n _spr=$1
+    local br=$2 bc=$3 r=0
+    for row_data in "${_spr[@]}"; do
+        local line=""
+        for (( i=0; i<${#row_data}; i++ )); do
+            local px=${row_data:$i:1}
+            if [[ $px == "0" ]]; then
+                line+="  "
+            else
+                line+="\e[38;5;${PAL[$px]}m██"
+            fi
+        done
+        line+="\e[0m"
+        tput cup $((br + r)) $bc
+        printf '%b' "$line"
+        ((r++))
+    done
+}
+
+clear_rows() {
+    local row=$1 count=$2
+    for (( r=0; r<count; r++ )); do
+        tput cup $((row + r)) 0
+        printf "%${COLS}s" ""
+    done
+}
+
+# ── Animation ─────────────────────────────────────────────────────────
+MID=$(( (COLS - UFO_W * 2) / 2 ))
+[[ $MID -lt 0 ]] && MID=0
+UFO_ROW=2
+
+tput civis
+tput clear
+
+# Phase 1: UFO slides from left to center
+for (( col=0; col<=MID; col+=2 )); do
+    clear_rows $UFO_ROW $UFO_H
+    draw_sprite UFO $UFO_ROW $col
+    sleep 0.015
+done
+draw_sprite UFO $UFO_ROW $MID
+sleep 0.3
+
+# Phase 2: Tractor beam extends down
+BEAM_COL=$(( MID + UFO_W - 3 ))
+BEAM_TOP=$((UFO_ROW + UFO_H))
+BEAM_LEN=6
+BEAM_BOT=$((BEAM_TOP + BEAM_LEN - 1))
+
+for (( row=BEAM_TOP; row<=BEAM_BOT; row++ )); do
+    tput cup $row $BEAM_COL
+    printf '%b' "\e[38;5;226m░░▓▓░░\e[0m"
+    sleep 0.04
+done
+sleep 0.2
+
+# Phase 3: Alien descends through beam
+ALIEN_COL=$(( MID + (UFO_W - ALIEN_W) ))
+ALIEN_LAND=$((BEAM_BOT + 1))
+
+for (( arow=BEAM_TOP; arow<=ALIEN_LAND; arow++ )); do
+    if [[ $arow -gt $BEAM_TOP ]]; then
+        for (( r=0; r<ALIEN_H; r++ )); do
+            cr=$((arow - 1 + r))
+            tput cup $cr $ALIEN_COL
+            printf "%$((ALIEN_W * 2))s" ""
+            if [[ $cr -ge $BEAM_TOP && $cr -le $BEAM_BOT ]]; then
+                tput cup $cr $BEAM_COL
+                printf '%b' "\e[38;5;226m░░▓▓░░\e[0m"
+            fi
+        done
+    fi
+    draw_sprite ALIEN $arow $ALIEN_COL
+    sleep 0.05
+done
+sleep 0.3
+
+# Phase 4: Beam fades
+for (( row=BEAM_TOP; row<=BEAM_BOT; row++ )); do
+    tput cup $row $BEAM_COL
+    printf "      "
+done
+
+# Phase 5: Speech bubble
+B_ROW=$((ALIEN_LAND + 2))
+B_COL=$((ALIEN_COL + ALIEN_W * 2 + 2))
+(( B_COL + 24 > COLS )) && B_COL=$((ALIEN_COL - 24))
+
+W=$'\e[38;5;255m'
+G=$'\e[38;5;46m'
+RS=$'\e[0m'
+
+tput cup $B_ROW         $B_COL; printf '%s' "${W}╭───────────────────╮${RS}"
+tput cup $((B_ROW + 1)) $B_COL; printf '%s' "${W}│ ${G}howdy there! 👋${W}  │${RS}"
+tput cup $((B_ROW + 2)) $B_COL; printf '%s' "${W}╰───────────────────╯${RS}"
+tput cup $((B_ROW + 3)) $B_COL; printf '%s' "${W}╱${RS}"
+
+sleep 1.8
+
+tput clear
+tput cnorm
+UFOSCRIPT
+    chmod +x "$GREETING_SCRIPT"
+    echo "  ufo-greeting script created at ~/.local/bin/ufo-greeting"
+
+    # Add to .bashrc — runs before tmux auto-attach, only outside tmux
+    GREETING_BLOCK='
+# ── UFO greeting ──────────────────────────────────────────────────────
+if [ -z "$TMUX" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
+    ufo-greeting
+fi
+# ── end UFO greeting ──────────────────────────────────────────────────
+'
+
+    # Remove old block if present, then add fresh
+    sed -i '/# ── UFO greeting/,/# ── end UFO greeting/d' "$HOME/.bashrc" 2>/dev/null || true
+
+    # Insert before tmux auto-attach so animation plays first
+    if grep -qF 'tmux auto-attach' "$HOME/.bashrc"; then
+        sed -i "/# ── tmux auto-attach/i\\$GREETING_BLOCK" "$HOME/.bashrc"
+    else
+        echo "$GREETING_BLOCK" >> "$HOME/.bashrc"
+    fi
+    echo "  UFO greeting added to ~/.bashrc (runs before tmux auto-attach)."
 }
 
 # ── Module: tools ─────────────────────────────────────────────────────────
