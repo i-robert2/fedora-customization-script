@@ -403,8 +403,6 @@ mod_greeting() {
 # Inline pixel-art UFO greeting — saucer slides across one line, then
 # becomes an alien message that stays in scrollback like normal output.
 
-exec > /dev/tty 2>/dev/null || exit 0
-
 COLS=$(tput cols 2>/dev/null || echo 80)
 (( COLS < 40 )) && exit 0
 
@@ -449,20 +447,16 @@ UFOSCRIPT
     # Remove old greeting block from .bashrc
     sed -i '/# ── UFO greeting/,/# ── end UFO greeting/d' "$HOME/.bashrc" 2>/dev/null || true
 
-    # Append new block — only on new tmux sessions (not new panes/windows)
+    # Append new block — runs OUTSIDE tmux (before auto-attach), on every new terminal
     cat >> "$HOME/.bashrc" <<'GREETING_EOF'
 
 # ── UFO greeting ──────────────────────────────────────────────────────
-if [ -n "$TMUX" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
-    _sess_created=$(tmux display-message -p '#{session_created}' 2>/dev/null)
-    if [ -n "$_sess_created" ] && (( $(date +%s) - _sess_created < 3 )); then
-        ufo-greeting &
-    fi
-    unset _sess_created
+if [ -z "$TMUX" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
+    ufo-greeting
 fi
 # ── end UFO greeting ──────────────────────────────────────────────────
 GREETING_EOF
-    echo "  UFO greeting added to ~/.bashrc (new sessions only)."
+    echo "  UFO greeting added to ~/.bashrc (runs before tmux auto-attach)."
 }
 
 # ── Module: tools ─────────────────────────────────────────────────────────
