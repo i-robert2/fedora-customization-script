@@ -596,10 +596,21 @@ mod_dock() {
         echo "  Dash to Dock extension installed."
     fi
 
-    # --- Enable the extension ---
+    # --- Enable the extension via dconf (reliable, doesn't need Shell running) ---
     EXT_UUID="dash-to-dock@micxgx.gmail.com"
     gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
-    echo "  Extension enabled."
+
+    # Also enable directly in dconf to ensure it persists
+    CURRENT_EXTS=$(dconf read /org/gnome/shell/enabled-extensions 2>/dev/null)
+    if [[ -z "$CURRENT_EXTS" || "$CURRENT_EXTS" == "@as []" ]]; then
+        dconf write /org/gnome/shell/enabled-extensions "['$EXT_UUID']"
+    elif [[ "$CURRENT_EXTS" != *"$EXT_UUID"* ]]; then
+        NEW_EXTS="${CURRENT_EXTS%]*}, '$EXT_UUID']"
+        dconf write /org/gnome/shell/enabled-extensions "$NEW_EXTS"
+    fi
+    # Disable the GNOME "extension-disable" override so user extensions load
+    dconf write /org/gnome/shell/disable-user-extensions "false"
+    echo "  Extension enabled (via dconf)."
 
     # --- Configure via dconf (works even before GNOME loads the schema) ---
     DCONF_PATH="/org/gnome/shell/extensions/dash-to-dock"
