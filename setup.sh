@@ -400,64 +400,48 @@ mod_greeting() {
 
     cat > "$GREETING_SCRIPT" <<'UFOSCRIPT'
 #!/usr/bin/env bash
-# Pixel-art UFO greeting — 2-line, non-blocking, stop-motion style.
-# A compact UFO slides across 2 lines, then becomes an alien saying howdy.
-# Runs in background; the alien message stays on screen.
-# Usage: ufo-greeting <start_row> &
+# Inline pixel-art UFO greeting — saucer slides across one line, then
+# becomes an alien message that stays in scrollback like normal output.
 
-ROW=${1:-1}
 exec > /dev/tty 2>/dev/null || exit 0
 
 COLS=$(tput cols 2>/dev/null || echo 80)
 (( COLS < 40 )) && exit 0
 
-# Colors (literal \e sequences — interpreted by printf %b)
-G='\e[38;5;46m'       # bright green (dome)
-DG='\e[38;5;34m'      # dark green (dome edge)
-GY='\e[38;5;250m'     # light grey (hull)
-NV='\e[38;5;19m'      # navy (outline)
-YL='\e[38;5;226m'     # yellow (lights)
-W='\e[38;5;255m'      # white (text)
+# Colors
+G='\e[38;5;46m'
+DG='\e[38;5;34m'
+GY='\e[38;5;250m'
+NV='\e[38;5;19m'
+YL='\e[38;5;226m'
+W='\e[38;5;255m'
 RS='\e[0m'
 
-# ── UFO sprite — 2 rows, 16 visible columns ──────────────────────
-# Row 1: green dome     ▄██████▄
-# Row 2: grey saucer  ▀▄◆██████◆▄▀
-U1="    ${DG}▄${G}██████${DG}▄${RS}    "
-U2=" ${NV}▀${GY}▄${YL}◆${GY}██████${YL}◆${GY}▄${NV}▀${RS} "
-SW=16
+# Pixel-art UFO in one line using block characters
+UFO="${NV}▐${DG}▄${G}████${DG}▄${NV}▌${GY}▟${YL}◆${GY}██████${YL}◆${GY}▙${RS}"
+UFO_W=15
 
-# ── Final message (stays on screen) ──────────────────────────────
-FINAL=" ${G}👾${W} howdy there!${RS}"
+MID=$(( (COLS - UFO_W) / 2 ))
+(( MID < 0 )) && MID=0
 
-# ── Animation parameters ─────────────────────────────────────────
-LAND=$(( (COLS - SW) / 2 ))
-(( LAND < 0 )) && LAND=0
-
-R1=$ROW
-R2=$((ROW + 1))
-
-# 15 stop-motion jumps: discrete positions, no flicker
-STEP=$(( LAND / 15 ))
+STEPS=15
+STEP=$(( MID / STEPS ))
 (( STEP < 1 )) && STEP=1
 
-# ── Phase 1: UFO slides left → center (~1.2 s) ──────────────────
-for (( p=0; p<=LAND; p+=STEP )); do
-    printf $'\e7\e[%d;1H\e[2K%*s%b\e[%d;1H\e[2K%*s%b\e8' \
-        "$R1" "$p" "" "$U1" \
-        "$R2" "$p" "" "$U2"
+tput civis 2>/dev/null
+
+# Slide UFO from left to center (~1.2 s)
+for (( p=0; p<=MID; p+=STEP )); do
+    printf '\r\e[2K%*s%b' "$p" "" "$UFO"
     sleep 0.08
 done
-# Pin exact center
-printf $'\e7\e[%d;1H\e[2K%*s%b\e[%d;1H\e[2K%*s%b\e8' \
-    "$R1" "$LAND" "" "$U1" \
-    "$R2" "$LAND" "" "$U2"
+printf '\r\e[2K%*s%b' "$MID" "" "$UFO"
 sleep 0.15
 
-# ── Phase 2: Replace with alien + message ────────────────────────
-printf $'\e7\e[%d;1H\e[2K%*s%b\e[%d;1H\e[2K\e8' \
-    "$R1" "$LAND" "" "$FINAL" \
-    "$R2"
+# Replace with alien message (stays in scrollback)
+printf '\r\e[2K'
+tput cnorm 2>/dev/null
+printf ' %b\n' "${G}👾${W} howdy there!${RS}"
 UFOSCRIPT
     chmod +x "$GREETING_SCRIPT"
     echo "  ufo-greeting script created at ~/.local/bin/ufo-greeting"
@@ -465,21 +449,20 @@ UFOSCRIPT
     # Remove old greeting block from .bashrc
     sed -i '/# ── UFO greeting/,/# ── end UFO greeting/d' "$HOME/.bashrc" 2>/dev/null || true
 
-    # Append new block — runs on every new interactive tmux pane, in background
+    # Append new block — only on new tmux sessions (not new panes/windows)
     cat >> "$HOME/.bashrc" <<'GREETING_EOF'
 
 # ── UFO greeting ──────────────────────────────────────────────────────
 if [ -n "$TMUX" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
-    _ur=1
-    IFS=';' read -t1 -sdR -p $'\e[6n' _ur _uc </dev/tty 2>/dev/null
-    _ur=${_ur#*[}
-    printf '\n\n'
-    ufo-greeting "$_ur" &
-    unset _ur _uc
+    _sess_created=$(tmux display-message -p '#{session_created}' 2>/dev/null)
+    if [ -n "$_sess_created" ] && (( $(date +%s) - _sess_created < 3 )); then
+        ufo-greeting &
+    fi
+    unset _sess_created
 fi
 # ── end UFO greeting ──────────────────────────────────────────────────
 GREETING_EOF
-    echo "  UFO greeting added to ~/.bashrc (non-blocking, every new pane)."
+    echo "  UFO greeting added to ~/.bashrc (new sessions only)."
 }
 
 # ── Module: tools ─────────────────────────────────────────────────────────
