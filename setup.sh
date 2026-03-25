@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt tools rofi)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -23,6 +23,8 @@ declare -A MODULE_DESC=(
     [capslock]="Fix CapsLock sticky/delayed behavior"
     [tmux]="Install and configure tmux + TPM + plugins"
     [prompt]="Customize bash prompt (alien beam)"
+    [tools]="Install CLI tools (bat, eza, fd, fzf, htop, jq, ncdu, ripgrep, duf, tldr)"
+    [rofi]="Install and configure rofi app launcher + Catppuccin theme"
 )
 
 # ── Module: ghostty ───────────────────────────────────────────────────────
@@ -384,6 +386,115 @@ export PS1="\[\e[1;35m\]👾\u\[\e[0m\] \[\e[1;38;5;80m\]🛸\h\[\e[0m\] \[\e[1;
     sed -i '/🛸.*PS1/d; /PROMPT_COMMAND.*_ufo/d' "$HOME/.bashrc" 2>/dev/null || true
     echo "$BASHRC_BLOCK" >> "$HOME/.bashrc"
     echo "  Alien beam prompt added to ~/.bashrc"
+}
+
+# ── Module: tools ─────────────────────────────────────────────────────────
+mod_tools() {
+    echo "[tools] Installing CLI tools..."
+
+    local -A TOOLS=(
+        [bat]="bat"           # cat with syntax highlighting
+        [eza]="eza"           # modern ls replacement (--tree, icons, git)
+        [fd]="fd-find"        # fast find alternative
+        [fzf]="fzf"           # fuzzy finder
+        [htop]="htop"         # interactive process viewer
+        [jq]="jq"             # JSON processor
+        [ncdu]="ncdu"         # disk usage analyzer
+        [rg]="ripgrep"        # fast recursive grep
+        [duf]="duf"           # disk usage (df replacement)
+        [tldr]="tldr"         # simplified man pages
+    )
+
+    local to_install=()
+    for cmd in "${!TOOLS[@]}"; do
+        if command -v "$cmd" &>/dev/null; then
+            echo "  ${TOOLS[$cmd]} is already installed, skipping."
+        else
+            to_install+=("${TOOLS[$cmd]}")
+        fi
+    done
+
+    if [[ ${#to_install[@]} -eq 0 ]]; then
+        echo "  All CLI tools already installed."
+    else
+        echo "  Installing: ${to_install[*]}"
+        sudo dnf install -y "${to_install[@]}"
+        echo "  CLI tools installed."
+    fi
+}
+
+# ── Module: rofi ──────────────────────────────────────────────────────────
+mod_rofi() {
+    echo "[rofi] Installing and configuring rofi app launcher..."
+
+    # --- Install rofi ---
+    if command -v rofi &>/dev/null; then
+        echo "  rofi is already installed, skipping."
+    else
+        sudo dnf install -y rofi
+        echo "  rofi installed."
+    fi
+
+    # --- Install Catppuccin Mocha theme ---
+    ROFI_THEME_DIR="$HOME/.local/share/rofi/themes"
+    ROFI_THEME="$ROFI_THEME_DIR/catppuccin-mocha.rasi"
+
+    if [ -f "$ROFI_THEME" ]; then
+        echo "  Catppuccin Mocha theme already installed, skipping."
+    else
+        mkdir -p "$ROFI_THEME_DIR"
+        curl -fsSL -o "$ROFI_THEME" \
+            "https://raw.githubusercontent.com/catppuccin/rofi/main/basic/.local/share/rofi/themes/catppuccin-mocha.rasi"
+        echo "  Catppuccin Mocha theme downloaded."
+    fi
+
+    # --- Write rofi config ---
+    ROFI_CONFIG_DIR="$HOME/.config/rofi"
+    ROFI_CONFIG="$ROFI_CONFIG_DIR/config.rasi"
+    mkdir -p "$ROFI_CONFIG_DIR"
+
+    cat > "$ROFI_CONFIG" <<'ROFICONF'
+configuration {
+    modi: "drun,run,window";
+    show-icons: true;
+    terminal: "ghostty";
+    drun-display-format: "{icon} {name}";
+    display-drun: "Apps";
+    display-run: "Run";
+    display-window: "Windows";
+    font: "JetBrainsMono Nerd Font 12";
+    case-sensitive: false;
+}
+
+@theme "catppuccin-mocha"
+ROFICONF
+    echo "  ~/.config/rofi/config.rasi written."
+
+    # --- Set Super+D keybinding to launch rofi ---
+    CUSTOM_KB_SCHEMA="org.gnome.settings-daemon.plugins.media-keys"
+    CUSTOM_KB_BASE="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
+    SLOT="custom-rofi"
+    SLOT_PATH="${CUSTOM_KB_BASE}/${SLOT}/"
+
+    EXISTING=$(gsettings get "$CUSTOM_KB_SCHEMA" custom-keybindings)
+
+    if [[ "$EXISTING" == *"${SLOT}"* ]]; then
+        echo "  Keybinding slot already exists, updating..."
+    else
+        if [[ "$EXISTING" == "@as []" ]]; then
+            NEW_LIST="['${SLOT_PATH}']"
+        else
+            NEW_LIST="${EXISTING%]*}, '${SLOT_PATH}']"
+        fi
+        gsettings set "$CUSTOM_KB_SCHEMA" custom-keybindings "$NEW_LIST"
+    fi
+
+    BINDING_SCHEMA="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${SLOT_PATH}"
+    gsettings set "$BINDING_SCHEMA" name "Rofi App Launcher"
+    gsettings set "$BINDING_SCHEMA" command "rofi -show drun"
+    gsettings set "$BINDING_SCHEMA" binding "<Super>d"
+
+    echo "  Super+D -> rofi -show drun configured."
 }
 
 # ── Helper functions ──────────────────────────────────────────────────────

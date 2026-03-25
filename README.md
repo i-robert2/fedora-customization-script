@@ -34,6 +34,8 @@ Available modules:
 | `capslock` | Fix CapsLock sticky/delayed behavior |
 | `tmux` | Install and configure tmux + TPM + plugins |
 | `prompt` | Customize bash prompt (alien beam) |
+| `tools` | Install CLI tools (bat, eza, fd, fzf, htop, jq, ncdu, ripgrep, duf, tldr) |
+| `rofi` | Install and configure rofi app launcher + Catppuccin theme |
 
 ---
 
@@ -246,6 +248,42 @@ A green teleport beam animation followed by a themed prompt:
 
 The beam and prompt colors are bash-level — they are unaffected by the Catppuccin tmux theme (which only styles the status bar).
 
+### 9. CLI Tools
+
+Installs a curated set of modern command-line tools in a single `dnf install`:
+
+| Tool | Package | What it does |
+|---|---|---|
+| `bat` | bat | `cat` with syntax highlighting and line numbers |
+| `eza` | eza | Modern `ls` replacement — icons, git status, `--tree` |
+| `fd` | fd-find | Fast, user-friendly `find` alternative |
+| `fzf` | fzf | Fuzzy finder for files, history, and more |
+| `htop` | htop | Interactive process viewer (replaces `top`) |
+| `jq` | jq | Command-line JSON processor |
+| `ncdu` | ncdu | Interactive disk usage analyzer |
+| `rg` | ripgrep | Blazing-fast recursive grep |
+| `duf` | duf | Disk usage overview (`df` replacement) |
+| `tldr` | tldr | Simplified, community-driven man pages |
+
+> **Tip:** `eza --tree` replaces the `tree` command and adds icons + git status when you have a Nerd Font installed.
+
+### 10. Rofi App Launcher
+
+Installs [rofi](https://github.com/davatorium/rofi) — a fast, keyboard-driven application launcher with native Wayland support (v2.0.0+).
+
+**What it configures:**
+
+| Setting | Value |
+|---|---|
+| Modi | drun (apps), run (commands), window (switcher) |
+| Font | JetBrainsMono Nerd Font 12 |
+| Theme | Catppuccin Mocha |
+| Show icons | Enabled |
+| Terminal | Ghostty |
+| Keybinding | **Super+D** → `rofi -show drun` |
+
+The Catppuccin Mocha theme is downloaded from the [catppuccin/rofi](https://github.com/catppuccin/rofi) repository and stored at `~/.local/share/rofi/themes/catppuccin-mocha.rasi`.
+
 ---
 
 ## tmux Cheatsheet
@@ -323,6 +361,8 @@ tmux-dev [directory]         # Dev layout (3 windows)
 | `~/.tmux/plugins/` | TPM and installed plugins |
 | `~/.local/bin/tmux-dev` | Dev session layout script |
 | `~/.bashrc` | Prompt customization + tmux auto-attach |
+| `~/.config/rofi/config.rasi` | Rofi configuration |
+| `~/.local/share/rofi/themes/catppuccin-mocha.rasi` | Rofi Catppuccin theme |
 | `/etc/dconf/db/gdm.d/99-capslock-fix` | GDM keyboard settings |
 | `/etc/dconf/profile/gdm` | GDM dconf profile |
 
