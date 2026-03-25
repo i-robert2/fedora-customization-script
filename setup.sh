@@ -372,17 +372,15 @@ DEVSCRIPT
     AUTOATTACH_BLOCK='
 # ── tmux auto-attach ──────────────────────────────────────────────────
 if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -t 0 ]; then
-    tmux attach 2>/dev/null || tmux new-session -s main
+    tmux new-session -A -s main
 fi
 # ── end tmux auto-attach ─────────────────────────────────────────────
 '
 
-    if grep -qF 'tmux auto-attach' "$HOME/.bashrc" 2>/dev/null; then
-        echo "  Auto-attach already configured, skipping."
-    else
-        echo "$AUTOATTACH_BLOCK" >> "$HOME/.bashrc"
-        echo "  Auto-attach added to ~/.bashrc (attaches to last session or creates 'main')."
-    fi
+    # Always update the auto-attach block to pick up changes
+    sed -i '/# ── tmux auto-attach/,/# ── end tmux auto-attach/d' "$HOME/.bashrc" 2>/dev/null || true
+    echo "$AUTOATTACH_BLOCK" >> "$HOME/.bashrc"
+    echo "  Auto-attach configured (tmux new-session -A -s main)."
 }
 
 # ── Module: prompt ────────────────────────────────────────────────────────
