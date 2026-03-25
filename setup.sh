@@ -446,24 +446,28 @@ UFO_W=15
 MID=$(( (COLS - UFO_W) / 2 ))
 (( MID < 0 )) && MID=0
 
-STEPS=15
+STEPS=10
 STEP=$(( MID / STEPS ))
 (( STEP < 1 )) && STEP=1
 
 tput civis 2>/dev/null
 
-# Slide UFO from left to center (~1.2 s)
+# Slide UFO from left to center (~0.4 s)
 for (( p=0; p<=MID; p+=STEP )); do
     printf '\r\e[2K%*s%b' "$p" "" "$UFO"
-    sleep 0.08
+    sleep 0.04
 done
 printf '\r\e[2K%*s%b' "$MID" "" "$UFO"
-sleep 0.15
+sleep 0.08
 
-# Replace with alien message (stays in scrollback)
+# Replace with centered alien message (stays in scrollback)
+MSG="👽 howdy there!"
+MSG_W=15
+MSG_PAD=$(( (COLS - MSG_W) / 2 ))
+(( MSG_PAD < 0 )) && MSG_PAD=0
 printf '\r\e[2K'
 tput cnorm 2>/dev/null
-printf ' %b\n' "${G}👾${W} howdy there!${RS}"
+printf '%*s%b\n' "$MSG_PAD" "" "${G}${MSG}${RS}"
 UFOSCRIPT
     chmod +x "$GREETING_SCRIPT"
     echo "  ufo-greeting script created at ~/.local/bin/ufo-greeting"
