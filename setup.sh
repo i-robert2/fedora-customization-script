@@ -452,13 +452,13 @@ STEP=$(( MID / STEPS ))
 
 tput civis 2>/dev/null
 
-# Slide UFO from left to center (~0.2 s)
+# Slide UFO from left to center (~0.1 s)
 for (( p=0; p<=MID; p+=STEP )); do
     printf '\r\e[2K%*s%b' "$p" "" "$UFO"
-    sleep 0.02
+    sleep 0.01
 done
 printf '\r\e[2K%*s%b' "$MID" "" "$UFO"
-sleep 0.04
+sleep 0.02
 
 # Replace with centered alien message (stays in scrollback)
 MSG="👽 howdy there!"
