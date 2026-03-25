@@ -1,6 +1,6 @@
 # 🛸 Fedora Workstation Setup Script
 
-A single bash script to customize a fresh Fedora Workstation installation with Ghostty terminal, tmux sessions, keyboard fixes, and a personalized shell experience.
+A modular bash script to customize a fresh Fedora Workstation installation with Ghostty terminal, tmux sessions, keyboard fixes, and a personalized shell experience.
 
 ## Quick Start
 
@@ -13,11 +13,33 @@ chmod +x setup.sh
 
 After it finishes, **log out and back in** so the keyboard shortcut and dconf settings take effect.
 
+### Running Individual Modules
+
+You don't have to run everything. Pick only the modules you need:
+
+```bash
+./setup.sh --list              # see available modules
+./setup.sh capslock            # just fix CapsLock delay
+./setup.sh tmux prompt         # install/configure tmux + customize prompt
+./setup.sh ghostty font keybinding  # just the Ghostty-related setup
+```
+
+Available modules:
+
+| Module | Description |
+|---|---|
+| `ghostty` | Install Ghostty terminal |
+| `font` | Install JetBrainsMono Nerd Font + configure Ghostty |
+| `keybinding` | Set Ctrl+Shift+Enter shortcut for Ghostty |
+| `capslock` | Fix CapsLock sticky/delayed behavior |
+| `tmux` | Install and configure tmux + TPM + plugins |
+| `prompt` | Customize bash prompt (alien beam) |
+
 ---
 
 ## What the Script Does
 
-The script runs 8 steps in order. Each step is idempotent — you can safely re-run the script without duplicating anything.
+The script has 6 modules that run in order. Each module is idempotent — you can safely re-run the script without duplicating anything.
 
 ### 1. Install Ghostty Terminal
 
@@ -308,4 +330,11 @@ tmux-dev [directory]         # Dev layout (3 windows)
 
 ## Re-running the Script
 
-The script is safe to run multiple times. Each section checks whether its changes are already applied and skips if so. The tmux config (`~/.tmux.conf`) is backed up with a timestamp before overwriting.
+The script is safe to run multiple times. Each module checks whether its changes are already applied and skips if so. The tmux config (`~/.tmux.conf`) is backed up with a timestamp before overwriting.
+
+You can re-run individual modules too:
+
+```bash
+./setup.sh tmux      # re-run just tmux setup
+./setup.sh prompt    # re-apply the bash prompt
+```

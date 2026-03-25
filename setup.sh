@@ -4,127 +4,142 @@ set -euo pipefail
 ###############################################################################
 # Fedora Workstation Setup Script
 # Run on a fresh Fedora installation to customize the desktop environment.
+#
+# Usage:
+#   ./setup.sh              Run all modules
+#   ./setup.sh --list       List available modules
+#   ./setup.sh --help       Show usage info
+#   ./setup.sh mod1 mod2    Run only the specified modules
 ###############################################################################
 
-echo "=== Fedora Workstation Setup ==="
-echo ""
+# ── Module registry ───────────────────────────────────────────────────────
+# Order matters: this is the execution order when running all modules.
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt)
 
-# ---------------------------------------------------------------------------
-# 1. Install Ghostty Terminal
-# ---------------------------------------------------------------------------
-echo "[1/8] Installing Ghostty terminal..."
+declare -A MODULE_DESC=(
+    [ghostty]="Install Ghostty terminal"
+    [font]="Install JetBrainsMono Nerd Font + configure Ghostty"
+    [keybinding]="Set Ctrl+Shift+Enter shortcut for Ghostty"
+    [capslock]="Fix CapsLock sticky/delayed behavior"
+    [tmux]="Install and configure tmux + TPM + plugins"
+    [prompt]="Customize bash prompt (alien beam)"
+)
 
-if command -v ghostty &>/dev/null; then
-    echo "  Ghostty is already installed, skipping."
-else
-    # Ghostty for Fedora is available via the scottames/ghostty COPR
-    # https://ghostty.org/docs/install/binary#fedora
-    sudo dnf install -y 'dnf-command(copr)'
-    sudo dnf copr enable -y scottames/ghostty
-    sudo dnf install -y ghostty
-    echo "  Ghostty installed from COPR (scottames/ghostty)."
-fi
+# ── Module: ghostty ───────────────────────────────────────────────────────
+mod_ghostty() {
+    echo "[ghostty] Installing Ghostty terminal..."
 
-# ---------------------------------------------------------------------------
-# 2. Install JetBrainsMono Nerd Font (needed for Powerline arrows)
-# ---------------------------------------------------------------------------
-echo "[2/9] Installing JetBrainsMono Nerd Font..."
-
-FONT_DIR="$HOME/.local/share/fonts/NerdFonts"
-if ls "$FONT_DIR"/JetBrainsMonoNerd* &>/dev/null 2>&1; then
-    echo "  JetBrainsMono Nerd Font already installed, skipping."
-else
-    FONT_VERSION="3.3.0"
-    FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v${FONT_VERSION}/JetBrainsMono.zip"
-    TMP_ZIP="$(mktemp /tmp/JetBrainsMono-XXXX.zip)"
-    echo "  Downloading JetBrainsMono Nerd Font v${FONT_VERSION}..."
-    curl -fsSL -o "$TMP_ZIP" "$FONT_URL"
-    mkdir -p "$FONT_DIR"
-    unzip -qo "$TMP_ZIP" -d "$FONT_DIR"
-    rm -f "$TMP_ZIP"
-    fc-cache -f "$FONT_DIR"
-    echo "  JetBrainsMono Nerd Font installed and font cache updated."
-fi
-
-# Configure Ghostty to use the Nerd Font
-GHOSTTY_CONFIG_DIR="$HOME/.config/ghostty"
-GHOSTTY_CONFIG="$GHOSTTY_CONFIG_DIR/config"
-mkdir -p "$GHOSTTY_CONFIG_DIR"
-if [ -f "$GHOSTTY_CONFIG" ] && grep -q 'font-family' "$GHOSTTY_CONFIG"; then
-    echo "  Ghostty font already configured, skipping."
-else
-    echo 'font-family = "JetBrainsMono Nerd Font"' >> "$GHOSTTY_CONFIG"
-    echo "  Ghostty configured to use JetBrainsMono Nerd Font."
-fi
-
-# ---------------------------------------------------------------------------
-# 3. Set Ctrl+Shift+Enter keyboard shortcut to open Ghostty
-# ---------------------------------------------------------------------------
-echo "[3/9] Configuring Ctrl+Shift+Enter to open Ghostty..."
-
-CUSTOM_KB_SCHEMA="org.gnome.settings-daemon.plugins.media-keys"
-CUSTOM_KB_BASE="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
-SLOT="custom-ghostty"
-SLOT_PATH="${CUSTOM_KB_BASE}/${SLOT}/"
-
-# Read existing custom keybindings and append ours if not already present
-EXISTING=$(gsettings get "$CUSTOM_KB_SCHEMA" custom-keybindings)
-
-if [[ "$EXISTING" == *"${SLOT}"* ]]; then
-    echo "  Keybinding slot already exists, updating..."
-else
-    if [[ "$EXISTING" == "@as []" ]]; then
-        NEW_LIST="['${SLOT_PATH}']"
+    if command -v ghostty &>/dev/null; then
+        echo "  Ghostty is already installed, skipping."
     else
-        # Strip trailing ']' and append our new entry
-        NEW_LIST="${EXISTING%]*}, '${SLOT_PATH}']"
+        # Ghostty for Fedora is available via the scottames/ghostty COPR
+        # https://ghostty.org/docs/install/binary#fedora
+        sudo dnf install -y 'dnf-command(copr)'
+        sudo dnf copr enable -y scottames/ghostty
+        sudo dnf install -y ghostty
+        echo "  Ghostty installed from COPR (scottames/ghostty)."
     fi
-    gsettings set "$CUSTOM_KB_SCHEMA" custom-keybindings "$NEW_LIST"
-fi
+}
 
-BINDING_SCHEMA="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${SLOT_PATH}"
-gsettings set "$BINDING_SCHEMA" name "Open Ghostty"
-gsettings set "$BINDING_SCHEMA" command "ghostty"
-gsettings set "$BINDING_SCHEMA" binding "<Control><Shift>Return"
+# ── Module: font ──────────────────────────────────────────────────────────
+mod_font() {
+    echo "[font] Installing JetBrainsMono Nerd Font..."
 
-echo "  Ctrl+Shift+Enter -> Ghostty configured."
+    FONT_DIR="$HOME/.local/share/fonts/NerdFonts"
+    if ls "$FONT_DIR"/JetBrainsMonoNerd* &>/dev/null 2>&1; then
+        echo "  JetBrainsMono Nerd Font already installed, skipping."
+    else
+        FONT_VERSION="3.3.0"
+        FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v${FONT_VERSION}/JetBrainsMono.zip"
+        TMP_ZIP="$(mktemp /tmp/JetBrainsMono-XXXX.zip)"
+        echo "  Downloading JetBrainsMono Nerd Font v${FONT_VERSION}..."
+        curl -fsSL -o "$TMP_ZIP" "$FONT_URL"
+        mkdir -p "$FONT_DIR"
+        unzip -qo "$TMP_ZIP" -d "$FONT_DIR"
+        rm -f "$TMP_ZIP"
+        fc-cache -f "$FONT_DIR"
+        echo "  JetBrainsMono Nerd Font installed and font cache updated."
+    fi
 
-# ---------------------------------------------------------------------------
-# 4. Fix CapsLock sticky / delayed toggle-off behavior (system-wide)
-# ---------------------------------------------------------------------------
-echo "[4/9] Fixing CapsLock sticky behavior (user session + GDM login)..."
+    # Configure Ghostty to use the Nerd Font
+    GHOSTTY_CONFIG_DIR="$HOME/.config/ghostty"
+    GHOSTTY_CONFIG="$GHOSTTY_CONFIG_DIR/config"
+    mkdir -p "$GHOSTTY_CONFIG_DIR"
+    if [ -f "$GHOSTTY_CONFIG" ] && grep -q 'font-family' "$GHOSTTY_CONFIG"; then
+        echo "  Ghostty font already configured, skipping."
+    else
+        echo 'font-family = "JetBrainsMono Nerd Font"' >> "$GHOSTTY_CONFIG"
+        echo "  Ghostty configured to use JetBrainsMono Nerd Font."
+    fi
+}
 
-# --- 3a. Current user session (gsettings / dconf) ---
-gsettings set org.gnome.desktop.a11y.keyboard slowkeys-enable false
-gsettings set org.gnome.desktop.a11y.keyboard bouncekeys-enable false
-gsettings set org.gnome.desktop.a11y.keyboard stickykeys-enable false
-gsettings set org.gnome.desktop.peripherals.keyboard delay 250
-gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30
-echo "  User session: accessibility keys disabled, repeat delay 250 ms."
+# ── Module: keybinding ────────────────────────────────────────────────────
+mod_keybinding() {
+    echo "[keybinding] Configuring Ctrl+Shift+Enter to open Ghostty..."
 
-# --- 3b. System-wide dconf profile (applies to GDM + all users) ---
-DCONF_PROFILE="/etc/dconf/profile/gdm"
-DCONF_DB_DIR="/etc/dconf/db/gdm.d"
-DCONF_KEYFILE="${DCONF_DB_DIR}/99-capslock-fix"
+    CUSTOM_KB_SCHEMA="org.gnome.settings-daemon.plugins.media-keys"
+    CUSTOM_KB_BASE="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
+    SLOT="custom-ghostty"
+    SLOT_PATH="${CUSTOM_KB_BASE}/${SLOT}/"
 
-# Ensure the GDM dconf profile exists and includes the gdm database
-if [ ! -f "$DCONF_PROFILE" ]; then
-    sudo mkdir -p "$(dirname "$DCONF_PROFILE")"
-    sudo tee "$DCONF_PROFILE" > /dev/null <<'EOF'
+    # Read existing custom keybindings and append ours if not already present
+    EXISTING=$(gsettings get "$CUSTOM_KB_SCHEMA" custom-keybindings)
+
+    if [[ "$EXISTING" == *"${SLOT}"* ]]; then
+        echo "  Keybinding slot already exists, updating..."
+    else
+        if [[ "$EXISTING" == "@as []" ]]; then
+            NEW_LIST="['${SLOT_PATH}']"
+        else
+            # Strip trailing ']' and append our new entry
+            NEW_LIST="${EXISTING%]*}, '${SLOT_PATH}']"
+        fi
+        gsettings set "$CUSTOM_KB_SCHEMA" custom-keybindings "$NEW_LIST"
+    fi
+
+    BINDING_SCHEMA="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${SLOT_PATH}"
+    gsettings set "$BINDING_SCHEMA" name "Open Ghostty"
+    gsettings set "$BINDING_SCHEMA" command "ghostty"
+    gsettings set "$BINDING_SCHEMA" binding "<Control><Shift>Return"
+
+    echo "  Ctrl+Shift+Enter -> Ghostty configured."
+}
+
+# ── Module: capslock ──────────────────────────────────────────────────────
+mod_capslock() {
+    echo "[capslock] Fixing CapsLock sticky behavior (user session + GDM login)..."
+
+    # Current user session (gsettings / dconf)
+    gsettings set org.gnome.desktop.a11y.keyboard slowkeys-enable false
+    gsettings set org.gnome.desktop.a11y.keyboard bouncekeys-enable false
+    gsettings set org.gnome.desktop.a11y.keyboard stickykeys-enable false
+    gsettings set org.gnome.desktop.peripherals.keyboard delay 250
+    gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30
+    echo "  User session: accessibility keys disabled, repeat delay 250 ms."
+
+    # System-wide dconf profile (applies to GDM + all users)
+    DCONF_PROFILE="/etc/dconf/profile/gdm"
+    DCONF_DB_DIR="/etc/dconf/db/gdm.d"
+    DCONF_KEYFILE="${DCONF_DB_DIR}/99-capslock-fix"
+
+    # Ensure the GDM dconf profile exists and includes the gdm database
+    if [ ! -f "$DCONF_PROFILE" ]; then
+        sudo mkdir -p "$(dirname "$DCONF_PROFILE")"
+        sudo tee "$DCONF_PROFILE" > /dev/null <<'EOF'
 user-db:user
 system-db:gdm
 EOF
-    echo "  Created dconf profile for GDM."
-else
-    if ! grep -q 'system-db:gdm' "$DCONF_PROFILE"; then
-        echo "system-db:gdm" | sudo tee -a "$DCONF_PROFILE" > /dev/null
-        echo "  Appended system-db:gdm to existing GDM dconf profile."
+        echo "  Created dconf profile for GDM."
+    else
+        if ! grep -q 'system-db:gdm' "$DCONF_PROFILE"; then
+            echo "system-db:gdm" | sudo tee -a "$DCONF_PROFILE" > /dev/null
+            echo "  Appended system-db:gdm to existing GDM dconf profile."
+        fi
     fi
-fi
 
-# Write the keyboard settings into the GDM dconf database
-sudo mkdir -p "$DCONF_DB_DIR"
-sudo tee "$DCONF_KEYFILE" > /dev/null <<'EOF'
+    # Write the keyboard settings into the GDM dconf database
+    sudo mkdir -p "$DCONF_DB_DIR"
+    sudo tee "$DCONF_KEYFILE" > /dev/null <<'EOF'
 [org/gnome/desktop/a11y/keyboard]
 slowkeys-enable=false
 bouncekeys-enable=false
@@ -135,43 +150,42 @@ delay=uint32 250
 repeat-interval=uint32 30
 EOF
 
-# Rebuild the dconf database so GDM picks up the changes
-sudo dconf update
-echo "  GDM login screen: same keyboard settings applied via dconf."
+    # Rebuild the dconf database so GDM picks up the changes
+    sudo dconf update
+    echo "  GDM login screen: same keyboard settings applied via dconf."
+}
 
-# ---------------------------------------------------------------------------
-# 5. Install tmux + clipboard tools
-# ---------------------------------------------------------------------------
-echo "[5/9] Installing tmux and clipboard tools..."
+# ── Module: tmux ──────────────────────────────────────────────────────────
+mod_tmux() {
+    echo "[tmux] Installing and configuring tmux..."
 
-if command -v tmux &>/dev/null; then
-    echo "  tmux is already installed, skipping."
-else
-    sudo dnf install -y tmux
-    echo "  tmux installed."
-fi
+    # --- Install tmux + clipboard tools ---
+    if command -v tmux &>/dev/null; then
+        echo "  tmux is already installed, skipping."
+    else
+        sudo dnf install -y tmux
+        echo "  tmux installed."
+    fi
 
-# xclip is required for tmux-yank to copy to the system clipboard
-if command -v xclip &>/dev/null; then
-    echo "  xclip is already installed, skipping."
-else
-    sudo dnf install -y xclip
-    echo "  xclip installed (needed for clipboard integration)."
-fi
+    # xclip is required for tmux-yank to copy to the system clipboard
+    if command -v xclip &>/dev/null; then
+        echo "  xclip is already installed, skipping."
+    else
+        sudo dnf install -y xclip
+        echo "  xclip installed (needed for clipboard integration)."
+    fi
 
-# ---------------------------------------------------------------------------
-# 6. Configure tmux (~/.tmux.conf)
-# ---------------------------------------------------------------------------
-echo "[6/9] Writing tmux configuration..."
+    # --- Write tmux configuration ---
+    echo "  Writing tmux configuration..."
 
-TMUX_CONF="$HOME/.tmux.conf"
+    TMUX_CONF="$HOME/.tmux.conf"
 
-if [ -f "$TMUX_CONF" ]; then
-    cp "$TMUX_CONF" "${TMUX_CONF}.bak.$(date +%s)"
-    echo "  Existing ~/.tmux.conf backed up."
-fi
+    if [ -f "$TMUX_CONF" ]; then
+        cp "$TMUX_CONF" "${TMUX_CONF}.bak.$(date +%s)"
+        echo "  Existing ~/.tmux.conf backed up."
+    fi
 
-cat > "$TMUX_CONF" <<'TMUXCONF'
+    cat > "$TMUX_CONF" <<'TMUXCONF'
 # ╔══════════════════════════════════════════════════════════════════════╗
 # ║  tmux configuration                                                ║
 # ╚══════════════════════════════════════════════════════════════════════╝
@@ -269,37 +283,33 @@ set -g @resurrect-capture-pane-contents 'on'
 run '~/.tmux/plugins/tpm/tpm'
 TMUXCONF
 
-echo "  ~/.tmux.conf written."
+    echo "  ~/.tmux.conf written."
 
-# ---------------------------------------------------------------------------
-# 7. Install TPM (Tmux Plugin Manager) and plugins
-# ---------------------------------------------------------------------------
-echo "[7/9] Installing TPM and tmux plugins..."
+    # --- Install TPM and plugins ---
+    echo "  Installing TPM and tmux plugins..."
 
-TPM_DIR="$HOME/.tmux/plugins/tpm"
+    TPM_DIR="$HOME/.tmux/plugins/tpm"
 
-if [ -d "$TPM_DIR" ]; then
-    echo "  TPM already installed, pulling latest..."
-    git -C "$TPM_DIR" pull --quiet
-else
-    git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
-    echo "  TPM cloned."
-fi
+    if [ -d "$TPM_DIR" ]; then
+        echo "  TPM already installed, pulling latest..."
+        git -C "$TPM_DIR" pull --quiet
+    else
+        git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
+        echo "  TPM cloned."
+    fi
 
-# Install all plugins defined in .tmux.conf headlessly
-"$TPM_DIR/bin/install_plugins"
-echo "  Plugins installed (resurrect, continuum, yank, catppuccin)."
+    # Install all plugins defined in .tmux.conf headlessly
+    "$TPM_DIR/bin/install_plugins"
+    echo "  Plugins installed (resurrect, continuum, yank, catppuccin)."
 
-# ---------------------------------------------------------------------------
-# 8. Session automation — "dev" layout + auto-attach
-# ---------------------------------------------------------------------------
-echo "[8/9] Setting up tmux session automation..."
+    # --- Session automation: "dev" layout + auto-attach ---
+    echo "  Setting up tmux session automation..."
 
-# Create a helper script that builds a "dev" session layout
-DEV_SCRIPT="$HOME/.local/bin/tmux-dev"
-mkdir -p "$HOME/.local/bin"
+    # Create a helper script that builds a "dev" session layout
+    DEV_SCRIPT="$HOME/.local/bin/tmux-dev"
+    mkdir -p "$HOME/.local/bin"
 
-cat > "$DEV_SCRIPT" <<'DEVSCRIPT'
+    cat > "$DEV_SCRIPT" <<'DEVSCRIPT'
 #!/usr/bin/env bash
 # tmux-dev — create or attach to a "dev" session with a standard layout.
 #
@@ -329,12 +339,12 @@ else
     tmux attach -t "$SESSION"
 fi
 DEVSCRIPT
-chmod +x "$DEV_SCRIPT"
-echo "  tmux-dev script created at ~/.local/bin/tmux-dev"
+    chmod +x "$DEV_SCRIPT"
+    echo "  tmux-dev script created at ~/.local/bin/tmux-dev"
 
-# Auto-attach: when Ghostty opens bash, attach to the last tmux session
-# (or create a default one). Only runs in interactive non-tmux shells.
-AUTOATTACH_BLOCK='
+    # Auto-attach: when Ghostty opens bash, attach to the last tmux session
+    # (or create a default one). Only runs in interactive non-tmux shells.
+    AUTOATTACH_BLOCK='
 # ── tmux auto-attach ──────────────────────────────────────────────────
 if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -t 0 ]; then
     tmux attach 2>/dev/null || tmux new-session -s main
@@ -342,19 +352,19 @@ fi
 # ── end tmux auto-attach ─────────────────────────────────────────────
 '
 
-if grep -qF 'tmux auto-attach' "$HOME/.bashrc" 2>/dev/null; then
-    echo "  Auto-attach already configured, skipping."
-else
-    echo "$AUTOATTACH_BLOCK" >> "$HOME/.bashrc"
-    echo "  Auto-attach added to ~/.bashrc (attaches to last session or creates 'main')."
-fi
+    if grep -qF 'tmux auto-attach' "$HOME/.bashrc" 2>/dev/null; then
+        echo "  Auto-attach already configured, skipping."
+    else
+        echo "$AUTOATTACH_BLOCK" >> "$HOME/.bashrc"
+        echo "  Auto-attach added to ~/.bashrc (attaches to last session or creates 'main')."
+    fi
+}
 
-# ---------------------------------------------------------------------------
-# 9. Customize bash prompt with alien beam
-# ---------------------------------------------------------------------------
-echo "[9/9] Customizing bash prompt with alien beam effect..."
+# ── Module: prompt ────────────────────────────────────────────────────────
+mod_prompt() {
+    echo "[prompt] Customizing bash prompt with alien beam effect..."
 
-BASHRC_BLOCK='
+    BASHRC_BLOCK='
 # ── Alien beam prompt ─────────────────────────────────────────────────
 _beam_prompt() {
     local g="\033[38;5;46m" d="\033[38;5;40m" r="\033[0m"
@@ -368,39 +378,99 @@ export PS1="\[\e[1;35m\]👾\u\[\e[0m\] \[\e[1;38;5;80m\]🛸\h\[\e[0m\] \[\e[1;
 # ── end beam prompt ───────────────────────────────────────────────────
 '
 
-# Always replace the prompt block to pick up changes
-sed -i '/# ── .*beam.*prompt/,/# ── end beam prompt/d' "$HOME/.bashrc" 2>/dev/null || true
-sed -i '/_beam_prompt/d; /_ufo_animate/d' "$HOME/.bashrc" 2>/dev/null || true
-sed -i '/🛸.*PS1/d; /PROMPT_COMMAND.*_ufo/d' "$HOME/.bashrc" 2>/dev/null || true
-echo "$BASHRC_BLOCK" >> "$HOME/.bashrc"
-echo "  Alien beam prompt added to ~/.bashrc"
+    # Always replace the prompt block to pick up changes
+    sed -i '/# ── .*beam.*prompt/,/# ── end beam prompt/d' "$HOME/.bashrc" 2>/dev/null || true
+    sed -i '/_beam_prompt/d; /_ufo_animate/d' "$HOME/.bashrc" 2>/dev/null || true
+    sed -i '/🛸.*PS1/d; /PROMPT_COMMAND.*_ufo/d' "$HOME/.bashrc" 2>/dev/null || true
+    echo "$BASHRC_BLOCK" >> "$HOME/.bashrc"
+    echo "  Alien beam prompt added to ~/.bashrc"
+}
 
-# ---------------------------------------------------------------------------
-# Done
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Setup complete! ==="
-echo "  - Ghostty terminal installed"
-echo "  - Ctrl+Shift+Enter opens Ghostty"
-echo "  - CapsLock responsiveness improved (user + GDM)"
-echo "  - tmux installed + configured (~/.tmux.conf)"
-echo "  - TPM + plugins: resurrect, continuum, yank, catppuccin mocha"
-echo "  - tmux-dev script at ~/.local/bin/tmux-dev"
-echo "  - tmux auto-attach on Ghostty launch"
-echo "  - JetBrainsMono Nerd Font installed + Ghostty configured"
-echo "  - Bash prompt: Powerline alien beam style"
-echo ""
-echo "Quick start:"
-echo "  1. Log out & back in (for keyboard shortcut + dconf)"
-echo "  2. Open Ghostty with Ctrl+Shift+Enter"
-echo "  3. tmux starts automatically — you're in a session"
-echo "  4. Run 'tmux-dev ~/myproject' for a dev layout"
-echo ""
-echo "tmux cheatsheet (prefix = Ctrl+Space):"
-echo "  Ctrl+Space |    split vertical    Ctrl+Space -    split horizontal"
-echo "  Ctrl+Space h/j/k/l  navigate      Ctrl+Space H/J/K/L  resize"
-echo "  Ctrl+Space c    new window         Ctrl+Space s    switch session"
-echo "  Ctrl+Space d    detach             Ctrl+Space n    new session"
-echo ""
-echo "Direct shortcuts (no prefix):"
-echo "  Alt+h/j/k/l    navigate panes     Alt+1-5    switch window"
+# ── Helper functions ──────────────────────────────────────────────────────
+show_help() {
+    cat <<'HELP'
+Fedora Workstation Setup Script
+
+Usage:
+  ./setup.sh                Run all modules (in order)
+  ./setup.sh <mod> [mod…]   Run only the specified modules
+  ./setup.sh --list         List available modules
+  ./setup.sh --help         Show this help message
+
+Examples:
+  ./setup.sh capslock tmux   Fix CapsLock + install/configure tmux
+  ./setup.sh prompt          Just customize the bash prompt
+HELP
+}
+
+show_list() {
+    echo "Available modules:"
+    for mod in "${ALL_MODULES[@]}"; do
+        printf "  %-12s %s\n" "$mod" "${MODULE_DESC[$mod]}"
+    done
+}
+
+run_module() {
+    local mod="$1"
+    if [[ -z "${MODULE_DESC[$mod]+x}" ]]; then
+        echo "Error: unknown module '$mod'." >&2
+        echo "Run './setup.sh --list' to see available modules." >&2
+        exit 1
+    fi
+    "mod_$mod"
+    echo ""
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────
+main() {
+    echo "=== Fedora Workstation Setup ==="
+    echo ""
+
+    if [[ $# -eq 0 ]]; then
+        # No arguments: run everything
+        for mod in "${ALL_MODULES[@]}"; do
+            run_module "$mod"
+        done
+    else
+        case "$1" in
+            --help|-h)
+                show_help
+                return 0
+                ;;
+            --list|-l)
+                show_list
+                return 0
+                ;;
+            --*)
+                echo "Error: unknown option '$1'." >&2
+                show_help >&2
+                return 1
+                ;;
+            *)
+                # Run only the requested modules
+                for mod in "$@"; do
+                    run_module "$mod"
+                done
+                ;;
+        esac
+    fi
+
+    echo "=== Setup complete! ==="
+    echo ""
+    echo "Quick start:"
+    echo "  1. Log out & back in (for keyboard shortcut + dconf)"
+    echo "  2. Open Ghostty with Ctrl+Shift+Enter"
+    echo "  3. tmux starts automatically — you're in a session"
+    echo "  4. Run 'tmux-dev ~/myproject' for a dev layout"
+    echo ""
+    echo "tmux cheatsheet (prefix = Ctrl+Space):"
+    echo "  Ctrl+Space |    split vertical    Ctrl+Space -    split horizontal"
+    echo "  Ctrl+Space h/j/k/l  navigate      Ctrl+Space H/J/K/L  resize"
+    echo "  Ctrl+Space c    new window         Ctrl+Space s    switch session"
+    echo "  Ctrl+Space d    detach             Ctrl+Space n    new session"
+    echo ""
+    echo "Direct shortcuts (no prefix):"
+    echo "  Alt+h/j/k/l    navigate panes     Alt+1-5    switch window"
+}
+
+main "$@"
