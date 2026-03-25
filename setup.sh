@@ -618,41 +618,44 @@ mod_dock() {
 
     # --- Enable the extension ---
     EXT_UUID="dash-to-dock@micxgx.gmail.com"
-    if gnome-extensions list --enabled 2>/dev/null | grep -qF "$EXT_UUID"; then
-        echo "  Extension already enabled."
-    else
-        gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
-        echo "  Extension enabled (may require a session restart to take effect)."
-    fi
+    gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
+    echo "  Extension enabled."
 
-    # --- Configure via dconf/gsettings ---
-    DOCK_SCHEMA="org.gnome.shell.extensions.dash-to-dock"
+    # --- Configure via dconf (works even before GNOME loads the schema) ---
+    DCONF_PATH="/org/gnome/shell/extensions/dash-to-dock"
 
     # Position at the bottom of the screen
-    gsettings set "$DOCK_SCHEMA" dock-position 'BOTTOM'
+    dconf write "$DCONF_PATH/dock-position" "'BOTTOM'"
 
-    # Auto-hide: dock slides away when a window overlaps it
-    gsettings set "$DOCK_SCHEMA" dock-fixed false
-    gsettings set "$DOCK_SCHEMA" autohide true
-    gsettings set "$DOCK_SCHEMA" intellihide true
-    gsettings set "$DOCK_SCHEMA" intellihide-mode 'ALL_WINDOWS'
+    # Auto-hide: dock slides away when not in use
+    dconf write "$DCONF_PATH/dock-fixed" "false"
+    dconf write "$DCONF_PATH/autohide" "true"
+    dconf write "$DCONF_PATH/intellihide" "true"
+    dconf write "$DCONF_PATH/intellihide-mode" "'ALL_WINDOWS'"
 
-    # Show the dock when the mouse hits the bottom edge
-    gsettings set "$DOCK_SCHEMA" autohide-in-fullscreen false
+    # Don't show in fullscreen
+    dconf write "$DCONF_PATH/autohide-in-fullscreen" "false"
 
-    # Animation speed (ms) — snappy reveal/hide
-    gsettings set "$DOCK_SCHEMA" animation-time 0.2
-    gsettings set "$DOCK_SCHEMA" hide-delay 0.2
-    gsettings set "$DOCK_SCHEMA" show-delay 0.0
+    # Animation speed — snappy reveal/hide
+    dconf write "$DCONF_PATH/animation-time" "0.2"
+    dconf write "$DCONF_PATH/hide-delay" "0.2"
+    dconf write "$DCONF_PATH/show-delay" "0.0"
 
-    # Icon size (48 px default, adjust to taste)
-    gsettings set "$DOCK_SCHEMA" dash-max-icon-size 48
+    # Icon size (48 px)
+    dconf write "$DCONF_PATH/dash-max-icon-size" "48"
 
-    # Extend the dock across the full bottom edge
-    gsettings set "$DOCK_SCHEMA" extend-height false
+    # Don't extend dock across full width
+    dconf write "$DCONF_PATH/extend-height" "false"
 
     echo "  Dock configured: auto-hiding bottom dock, reveals on mouse hover."
-    echo "  NOTE: Log out and back in (or press Alt+F2 → r → Enter) to activate."
+
+    # --- Restart GNOME Shell to pick up the extension + settings ---
+    if [[ "$XDG_SESSION_TYPE" == "x11" ]]; then
+        echo "  Restarting GNOME Shell (X11)..."
+        busctl --user call org.gnome.Shell /org/gnome/Shell org.gnome.Shell Eval s 'Meta.restart("Restarting…")' 2>/dev/null || true
+    else
+        echo "  NOTE: On Wayland, log out and back in for the dock to appear."
+    fi
 }
 
 # ── Module: power ─────────────────────────────────────────────────────────
