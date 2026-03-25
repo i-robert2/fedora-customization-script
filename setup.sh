@@ -399,189 +399,89 @@ mod_greeting() {
 
     cat > "$GREETING_SCRIPT" <<'UFOSCRIPT'
 #!/usr/bin/env bash
-# Pixel-art UFO greeting — colored block characters for a retro pixel look.
-# A saucer flies in, beams down an alien who says howdy.
-# Skips if not interactive, inside tmux, or terminal too small.
+# Pixel-art UFO greeting — 2-line, non-blocking, stop-motion style.
+# A compact UFO slides across 2 lines, then becomes an alien saying howdy.
+# Runs in background; the alien message stays on screen.
+# Usage: ufo-greeting <start_row> &
 
-[[ ! -t 1 ]] && exit 0
-[[ -n "$TMUX" ]] && exit 0
+ROW=${1:-1}
+exec > /dev/tty 2>/dev/null || exit 0
 
 COLS=$(tput cols 2>/dev/null || echo 80)
-ROWS=$(tput lines 2>/dev/null || echo 24)
-[[ $COLS -lt 60 || $ROWS -lt 22 ]] && exit 0
+(( COLS < 40 )) && exit 0
 
-# ── Color palette (256-color) ─────────────────────────────────────────
-# Index: 0=transparent  1=dk_green  2=bright_green  3=white  4=purple
-#        5=orange       6=lt_grey   7=dk_grey       8=navy   9=yellow
-PAL=(0 22 46 255 141 208 249 240 17 226)
+# Colors (literal \e sequences — interpreted by printf %b)
+G='\e[38;5;46m'       # bright green (dome)
+DG='\e[38;5;34m'      # dark green (dome edge)
+GY='\e[38;5;250m'     # light grey (hull)
+NV='\e[38;5;19m'      # navy (outline)
+YL='\e[38;5;226m'     # yellow (lights)
+W='\e[38;5;255m'      # white (text)
+RS='\e[0m'
 
-# ── Sprite data ───────────────────────────────────────────────────────
-# Each character = one pixel rendered as "██".  '0' = transparent (2 spaces).
+# ── UFO sprite — 2 rows, 16 visible columns ──────────────────────
+# Row 1: green dome     ▄██████▄
+# Row 2: grey saucer  ▀▄◆██████◆▄▀
+U1="    ${DG}▄${G}██████${DG}▄${RS}    "
+U2=" ${NV}▀${GY}▄${YL}◆${GY}██████${YL}◆${GY}▄${NV}▀${RS} "
+SW=16
 
-UFO=(
-    "000002220000000"
-    "000022322200000"
-    "000122222400000"
-    "001222222450000"
-    "086666666666800"
-    "869666666696800"
-    "086666666668000"
-    "008877777880000"
-    "000008888000000"
-)
-UFO_W=15
-UFO_H=9
+# ── Final message (stays on screen) ──────────────────────────────
+FINAL=" ${G}👾${W} howdy there!${RS}"
 
-ALIEN=(
-    "000222000"
-    "002222200"
-    "022323220"
-    "022222220"
-    "002222200"
-    "000222000"
-    "002222200"
-    "002020200"
-    "000202000"
-    "002200220"
-)
-ALIEN_W=9
-ALIEN_H=10
+# ── Animation parameters ─────────────────────────────────────────
+LAND=$(( (COLS - SW) / 2 ))
+(( LAND < 0 )) && LAND=0
 
-# ── Rendering ─────────────────────────────────────────────────────────
-draw_sprite() {
-    local -n _spr=$1
-    local br=$2 bc=$3 r=0
-    for row_data in "${_spr[@]}"; do
-        local line=""
-        for (( i=0; i<${#row_data}; i++ )); do
-            local px=${row_data:$i:1}
-            if [[ $px == "0" ]]; then
-                line+="  "
-            else
-                line+="\e[38;5;${PAL[$px]}m██"
-            fi
-        done
-        line+="\e[0m"
-        tput cup $((br + r)) $bc
-        printf '%b' "$line"
-        ((r++))
-    done
-}
+R1=$ROW
+R2=$((ROW + 1))
 
-clear_rows() {
-    local row=$1 count=$2
-    for (( r=0; r<count; r++ )); do
-        tput cup $((row + r)) 0
-        printf "%${COLS}s" ""
-    done
-}
+# 15 stop-motion jumps: discrete positions, no flicker
+STEP=$(( LAND / 15 ))
+(( STEP < 1 )) && STEP=1
 
-# ── Animation ─────────────────────────────────────────────────────────
-MID=$(( (COLS - UFO_W * 2) / 2 ))
-[[ $MID -lt 0 ]] && MID=0
-UFO_ROW=2
-
-tput civis
-tput clear
-
-# Phase 1: UFO slides from left to center
-for (( col=0; col<=MID; col+=2 )); do
-    clear_rows $UFO_ROW $UFO_H
-    draw_sprite UFO $UFO_ROW $col
-    sleep 0.015
+# ── Phase 1: UFO slides left → center (~1.2 s) ──────────────────
+for (( p=0; p<=LAND; p+=STEP )); do
+    printf $'\e7\e[%d;1H\e[2K%*s%b\e[%d;1H\e[2K%*s%b\e8' \
+        "$R1" "$p" "" "$U1" \
+        "$R2" "$p" "" "$U2"
+    sleep 0.08
 done
-draw_sprite UFO $UFO_ROW $MID
-sleep 0.3
+# Pin exact center
+printf $'\e7\e[%d;1H\e[2K%*s%b\e[%d;1H\e[2K%*s%b\e8' \
+    "$R1" "$LAND" "" "$U1" \
+    "$R2" "$LAND" "" "$U2"
+sleep 0.15
 
-# Phase 2: Tractor beam extends down
-BEAM_COL=$(( MID + UFO_W - 3 ))
-BEAM_TOP=$((UFO_ROW + UFO_H))
-BEAM_LEN=6
-BEAM_BOT=$((BEAM_TOP + BEAM_LEN - 1))
-
-for (( row=BEAM_TOP; row<=BEAM_BOT; row++ )); do
-    tput cup $row $BEAM_COL
-    printf '%b' "\e[38;5;226m░░▓▓░░\e[0m"
-    sleep 0.04
-done
-sleep 0.2
-
-# Phase 3: Alien descends through beam
-ALIEN_COL=$(( MID + (UFO_W - ALIEN_W) ))
-ALIEN_LAND=$((BEAM_BOT + 1))
-
-for (( arow=BEAM_TOP; arow<=ALIEN_LAND; arow++ )); do
-    if [[ $arow -gt $BEAM_TOP ]]; then
-        for (( r=0; r<ALIEN_H; r++ )); do
-            cr=$((arow - 1 + r))
-            tput cup $cr $ALIEN_COL
-            printf "%$((ALIEN_W * 2))s" ""
-            if [[ $cr -ge $BEAM_TOP && $cr -le $BEAM_BOT ]]; then
-                tput cup $cr $BEAM_COL
-                printf '%b' "\e[38;5;226m░░▓▓░░\e[0m"
-            fi
-        done
-    fi
-    draw_sprite ALIEN $arow $ALIEN_COL
-    sleep 0.05
-done
-sleep 0.3
-
-# Phase 4: Beam fades
-for (( row=BEAM_TOP; row<=BEAM_BOT; row++ )); do
-    tput cup $row $BEAM_COL
-    printf "      "
-done
-
-# Phase 5: Speech bubble
-B_ROW=$((ALIEN_LAND + 2))
-B_COL=$((ALIEN_COL + ALIEN_W * 2 + 2))
-(( B_COL + 24 > COLS )) && B_COL=$((ALIEN_COL - 24))
-
-W=$'\e[38;5;255m'
-G=$'\e[38;5;46m'
-RS=$'\e[0m'
-
-tput cup $B_ROW         $B_COL; printf '%s' "${W}╭───────────────────╮${RS}"
-tput cup $((B_ROW + 1)) $B_COL; printf '%s' "${W}│ ${G}howdy there! 👋${W}  │${RS}"
-tput cup $((B_ROW + 2)) $B_COL; printf '%s' "${W}╰───────────────────╯${RS}"
-tput cup $((B_ROW + 3)) $B_COL; printf '%s' "${W}╱${RS}"
-
-sleep 1.8
-
-tput clear
-tput cnorm
+# ── Phase 2: Replace with alien + message ────────────────────────
+printf $'\e7\e[%d;1H\e[2K%*s%b\e[%d;1H\e[2K\e8' \
+    "$R1" "$LAND" "" "$FINAL" \
+    "$R2"
 UFOSCRIPT
     chmod +x "$GREETING_SCRIPT"
     echo "  ufo-greeting script created at ~/.local/bin/ufo-greeting"
 
-    # Add to .bashrc — runs before tmux auto-attach, only outside tmux
-    GREETING_BLOCK='
-# ── UFO greeting ──────────────────────────────────────────────────────
-if [ -z "$TMUX" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
-    ufo-greeting
-fi
-# ── end UFO greeting ──────────────────────────────────────────────────
-'
-
-    # Remove old block if present, then add fresh
+    # Remove old greeting block from .bashrc
     sed -i '/# ── UFO greeting/,/# ── end UFO greeting/d' "$HOME/.bashrc" 2>/dev/null || true
 
-    # Insert before tmux auto-attach so animation plays first
-    if grep -qF 'tmux auto-attach' "$HOME/.bashrc"; then
-        # Build a new .bashrc with the greeting block right before tmux auto-attach
-        TMPRC="$(mktemp)"
-        while IFS= read -r line; do
-            if [[ "$line" == *"tmux auto-attach"* ]]; then
-                echo "$GREETING_BLOCK"
-            fi
-            echo "$line"
-        done < "$HOME/.bashrc" > "$TMPRC"
-        mv "$TMPRC" "$HOME/.bashrc"
-    else
-        echo "$GREETING_BLOCK" >> "$HOME/.bashrc"
+    # Append new block — runs inside tmux, once per session, in background
+    cat >> "$HOME/.bashrc" <<'GREETING_EOF'
+
+# ── UFO greeting ──────────────────────────────────────────────────────
+if [ -n "$TMUX" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
+    if ! tmux show-environment UFO_GREETED &>/dev/null; then
+        tmux set-environment UFO_GREETED 1
+        _ur=1
+        IFS=';' read -t1 -sdR -p $'\e[6n' _ur _uc </dev/tty 2>/dev/null
+        _ur=${_ur#*[}
+        printf '\n\n'
+        ufo-greeting "$_ur" &
+        unset _ur _uc
     fi
-    echo "  UFO greeting added to ~/.bashrc (runs before tmux auto-attach)."
+fi
+# ── end UFO greeting ──────────────────────────────────────────────────
+GREETING_EOF
+    echo "  UFO greeting added to ~/.bashrc (non-blocking, inside tmux)."
 }
 
 # ── Module: tools ─────────────────────────────────────────────────────────
@@ -634,14 +534,24 @@ mod_rofi() {
     # --- Install Catppuccin Mocha theme ---
     ROFI_THEME_DIR="$HOME/.local/share/rofi/themes"
     ROFI_THEME="$ROFI_THEME_DIR/catppuccin-mocha.rasi"
+    ROFI_DEFAULT="$ROFI_THEME_DIR/catppuccin-default.rasi"
+
+    mkdir -p "$ROFI_THEME_DIR"
 
     if [ -f "$ROFI_THEME" ]; then
-        echo "  Catppuccin Mocha theme already installed, skipping."
+        echo "  Catppuccin Mocha palette already installed, skipping."
     else
-        mkdir -p "$ROFI_THEME_DIR"
         curl -fsSL -o "$ROFI_THEME" \
-            "https://raw.githubusercontent.com/catppuccin/rofi/main/basic/.local/share/rofi/themes/catppuccin-mocha.rasi"
-        echo "  Catppuccin Mocha theme downloaded."
+            "https://raw.githubusercontent.com/catppuccin/rofi/main/themes/catppuccin-mocha.rasi"
+        echo "  Catppuccin Mocha palette downloaded."
+    fi
+
+    if [ -f "$ROFI_DEFAULT" ]; then
+        echo "  Catppuccin default theme already installed, skipping."
+    else
+        curl -fsSL -o "$ROFI_DEFAULT" \
+            "https://raw.githubusercontent.com/catppuccin/rofi/main/catppuccin-default.rasi"
+        echo "  Catppuccin default theme downloaded."
     fi
 
     # --- Write rofi config ---
@@ -662,7 +572,7 @@ configuration {
     case-sensitive: false;
 }
 
-@theme "catppuccin-mocha"
+@theme "catppuccin-default"
 ROFICONF
     echo "  ~/.config/rofi/config.rasi written."
 
