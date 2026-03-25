@@ -23,7 +23,7 @@ declare -A MODULE_DESC=(
     [capslock]="Fix CapsLock sticky/delayed behavior"
     [tmux]="Install and configure tmux + TPM + plugins"
     [prompt]="Customize bash prompt (alien beam)"
-    [tools]="Install CLI tools (bat, eza, fd, fzf, htop, jq, ncdu, ripgrep, duf, tldr)"
+    [tools]="Install CLI tools (bat, btop, eza, fd, fastfetch, fzf, htop, jq, ncdu, ripgrep, duf, tldr)"
     [rofi]="Install and configure rofi app launcher + Catppuccin theme"
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
@@ -492,7 +492,9 @@ mod_tools() {
 
     local -A TOOLS=(
         [bat]="bat"           # cat with syntax highlighting
+        [btop]="btop"         # resource monitor (CPU, RAM, disk, network)
         [eza]="eza"           # modern ls replacement (--tree, icons, git)
+        [fastfetch]="fastfetch" # system info display (neofetch replacement)
         [fd]="fd-find"        # fast find alternative
         [fzf]="fzf"           # fuzzy finder
         [htop]="htop"         # interactive process viewer
