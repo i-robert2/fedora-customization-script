@@ -569,7 +569,15 @@ fi
 
     # Insert before tmux auto-attach so animation plays first
     if grep -qF 'tmux auto-attach' "$HOME/.bashrc"; then
-        sed -i "/# ── tmux auto-attach/i\\$GREETING_BLOCK" "$HOME/.bashrc"
+        # Build a new .bashrc with the greeting block right before tmux auto-attach
+        TMPRC="$(mktemp)"
+        while IFS= read -r line; do
+            if [[ "$line" == *"tmux auto-attach"* ]]; then
+                echo "$GREETING_BLOCK"
+            fi
+            echo "$line"
+        done < "$HOME/.bashrc" > "$TMPRC"
+        mv "$TMPRC" "$HOME/.bashrc"
     else
         echo "$GREETING_BLOCK" >> "$HOME/.bashrc"
     fi
