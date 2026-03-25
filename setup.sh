@@ -78,13 +78,19 @@ mod_font() {
     fi
 
     # Add keybindings for word navigation and line selection
-    if grep -q 'ctrl+left' "$GHOSTTY_CONFIG" 2>/dev/null; then
-        # Remove old keybindings to replace with corrected ones
-        sed -i '/# Word navigation/,/^$/d; /# Word selection/,/^$/d; /# Line selection/,/^$/d' "$GHOSTTY_CONFIG"
-        sed -i '/ctrl+left\|ctrl+right\|ctrl+shift+left\|ctrl+shift+right\|shift+home\|shift+end/d' "$GHOSTTY_CONFIG"
-    fi
-    if ! grep -q 'esc:b' "$GHOSTTY_CONFIG" 2>/dev/null; then
-        cat >> "$GHOSTTY_CONFIG" <<'GHOSTTYKEYS'
+    # First, aggressively remove any old/broken keybind lines
+    sed -i '/keybind.*ctrl+left/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    sed -i '/keybind.*ctrl+right/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    sed -i '/keybind.*ctrl+shift+left/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    sed -i '/keybind.*ctrl+shift+right/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    sed -i '/keybind.*shift+home/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    sed -i '/keybind.*shift+end/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    sed -i '/adjust_selection/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    sed -i '/# Word navigation/d; /# Word selection/d; /# Line selection/d' "$GHOSTTY_CONFIG" 2>/dev/null || true
+    # Remove blank lines at end of file
+    sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$GHOSTTY_CONFIG" 2>/dev/null || true
+
+    cat >> "$GHOSTTY_CONFIG" <<'GHOSTTYKEYS'
 
 # Word navigation: Ctrl+Left/Right jumps by word
 keybind = ctrl+left=esc:b
