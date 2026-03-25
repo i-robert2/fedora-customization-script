@@ -372,7 +372,20 @@ DEVSCRIPT
     AUTOATTACH_BLOCK='
 # ── tmux auto-attach ──────────────────────────────────────────────────
 if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -t 0 ]; then
-    tmux new-session -A -s main
+    # Each Ghostty window gets its own tmux session (main, main-1, main-2, …)
+    _n=0
+    _sess="main"
+    while tmux has-session -t "$_sess" 2>/dev/null; do
+        # Session exists — check if another client is already attached
+        _attached=$(tmux list-clients -t "$_sess" 2>/dev/null | wc -l)
+        if [ "$_attached" -eq 0 ]; then
+            break  # unattached session found, reuse it
+        fi
+        _n=$((_n + 1))
+        _sess="main-$_n"
+    done
+    tmux new-session -A -s "$_sess"
+    unset _n _sess _attached
 fi
 # ── end tmux auto-attach ─────────────────────────────────────────────
 '
