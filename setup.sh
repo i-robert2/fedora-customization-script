@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi dock power)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -25,7 +25,6 @@ declare -A MODULE_DESC=(
     [prompt]="Customize bash prompt (alien beam)"
     [tools]="Install CLI tools (bat, eza, fd, fzf, htop, jq, ncdu, ripgrep, duf, tldr)"
     [rofi]="Install and configure rofi app launcher + Catppuccin theme"
-    [dock]="Auto-hiding bottom dock (Dash to Dock extension)"
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
 )
@@ -606,83 +605,6 @@ ROFICONF
     echo "  Super+D -> rofi -show drun configured."
 }
 
-# ── Module: dock ──────────────────────────────────────────────────────────
-mod_dock() {
-    echo "[dock] Configuring auto-hiding bottom dock (Dash to Dock)..."
-
-    EXT_UUID="dash-to-dock@micxgx.gmail.com"
-    EXT_DIR="${HOME}/.local/share/gnome-shell/extensions/${EXT_UUID}"
-
-    # --- Remove outdated distro-packaged version (often incompatible) ---
-    if dnf list installed gnome-shell-extension-dash-to-dock &>/dev/null 2>&1; then
-        echo "  Removing outdated distro-packaged Dash to Dock..."
-        sudo dnf remove -y gnome-shell-extension-dash-to-dock
-    fi
-
-    # --- Install from extensions.gnome.org (has latest compatible builds) ---
-    if gnome-extensions info "$EXT_UUID" &>/dev/null; then
-        echo "  Dash to Dock already recognised by GNOME Shell, skipping download."
-    else
-        echo "  Downloading Dash to Dock from extensions.gnome.org..."
-        sudo dnf install -y unzip 2>/dev/null || true
-
-        GNOME_VER=$(gnome-shell --version | grep -oP '\d+' | head -1)
-        TMPZIP=$(mktemp /tmp/dash-to-dock-XXXXXX.zip)
-
-        # Try the API for the exact download URL; fall back to known v103
-        DL_PATH=$(curl -sf "https://extensions.gnome.org/extension-info/?uuid=${EXT_UUID}&shell_version=${GNOME_VER}" \
-            | python3 -c "import sys,json; print(json.load(sys.stdin)['download_url'])" 2>/dev/null) \
-            || DL_PATH="/extension-data/dash-to-dockmicxgx.gmail.com.v103.shell-extension.zip"
-
-        curl -fL -o "$TMPZIP" "https://extensions.gnome.org${DL_PATH}"
-
-        mkdir -p "$EXT_DIR"
-        unzip -o "$TMPZIP" -d "$EXT_DIR"
-        rm -f "$TMPZIP"
-        echo "  Dash to Dock installed from extensions.gnome.org."
-    fi
-
-    # --- Enable the extension ---
-    gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
-
-    # Also enable directly in dconf to ensure it persists
-    CURRENT_EXTS=$(dconf read /org/gnome/shell/enabled-extensions 2>/dev/null)
-    if [[ -z "$CURRENT_EXTS" || "$CURRENT_EXTS" == "@as []" ]]; then
-        dconf write /org/gnome/shell/enabled-extensions "['$EXT_UUID']"
-    elif [[ "$CURRENT_EXTS" != *"$EXT_UUID"* ]]; then
-        NEW_EXTS="${CURRENT_EXTS%]*}, '$EXT_UUID']"
-        dconf write /org/gnome/shell/enabled-extensions "$NEW_EXTS"
-    fi
-    dconf write /org/gnome/shell/disable-user-extensions "false"
-    echo "  Extension enabled."
-
-    # --- Configure via dconf ---
-    DCONF_PATH="/org/gnome/shell/extensions/dash-to-dock"
-
-    dconf write "$DCONF_PATH/dock-position" "'BOTTOM'"
-    dconf write "$DCONF_PATH/dock-fixed" "false"
-    dconf write "$DCONF_PATH/autohide" "true"
-    dconf write "$DCONF_PATH/intellihide" "false"
-    dconf write "$DCONF_PATH/autohide-in-fullscreen" "false"
-    dconf write "$DCONF_PATH/animation-time" "0.2"
-    dconf write "$DCONF_PATH/hide-delay" "0.2"
-    dconf write "$DCONF_PATH/show-delay" "0.0"
-    dconf write "$DCONF_PATH/require-pressure-to-show" "true"
-    dconf write "$DCONF_PATH/pressure-threshold" "100.0"
-    dconf write "$DCONF_PATH/dash-max-icon-size" "48"
-    dconf write "$DCONF_PATH/extend-height" "false"
-
-    echo "  Dock configured: auto-hiding bottom dock, reveals on mouse hover."
-
-    # --- Restart GNOME Shell to pick up the extension + settings ---
-    if [[ "$XDG_SESSION_TYPE" == "x11" ]]; then
-        echo "  Restarting GNOME Shell (X11)..."
-        busctl --user call org.gnome.Shell /org/gnome/Shell org.gnome.Shell Eval s 'Meta.restart("Restarting…")' 2>/dev/null || true
-    else
-        echo "  NOTE: On Wayland, log out and back in for the dock to appear."
-    fi
-}
-
 # ── Module: power ─────────────────────────────────────────────────────────
 mod_power() {
     echo "[power] Configuring sleep after 3 hours, shutdown after 4 hours of inactivity..."
@@ -828,21 +750,25 @@ main() {
     fi
 
     echo "=== Setup complete! ==="
-    echo ""
-    echo "Quick start:"
-    echo "  1. Log out & back in (for keyboard shortcut + dconf)"
-    echo "  2. Open Ghostty with Ctrl+Shift+Enter"
-    echo "  3. tmux starts automatically — you're in a session"
-    echo "  4. Run 'tmux-dev ~/myproject' for a dev layout"
-    echo ""
-    echo "tmux cheatsheet (prefix = Ctrl+Space):"
-    echo "  Ctrl+Space |    split vertical    Ctrl+Space -    split horizontal"
-    echo "  Ctrl+Space h/j/k/l  navigate      Ctrl+Space H/J/K/L  resize"
-    echo "  Ctrl+Space c    new window         Ctrl+Space s    switch session"
-    echo "  Ctrl+Space d    detach             Ctrl+Space n    new session"
-    echo ""
-    echo "Direct shortcuts (no prefix):"
-    echo "  Alt+h/j/k/l    navigate panes     Alt+1-5    switch window"
+
+    # Only show quick-start tips when running all modules
+    if [[ $# -eq 0 ]]; then
+        echo ""
+        echo "Quick start:"
+        echo "  1. Log out & back in (for keyboard shortcut + dconf)"
+        echo "  2. Open Ghostty with Ctrl+Shift+Enter"
+        echo "  3. tmux starts automatically — you're in a session"
+        echo "  4. Run 'tmux-dev ~/myproject' for a dev layout"
+        echo ""
+        echo "tmux cheatsheet (prefix = Ctrl+Space):"
+        echo "  Ctrl+Space |    split vertical    Ctrl+Space -    split horizontal"
+        echo "  Ctrl+Space h/j/k/l  navigate      Ctrl+Space H/J/K/L  resize"
+        echo "  Ctrl+Space c    new window         Ctrl+Space s    switch session"
+        echo "  Ctrl+Space d    detach             Ctrl+Space n    new session"
+        echo ""
+        echo "Direct shortcuts (no prefix):"
+        echo "  Alt+h/j/k/l    navigate panes     Alt+1-5    switch window"
+    fi
 }
 
 main "$@"
