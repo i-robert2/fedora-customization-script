@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt tools rofi)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt tools rofi dock)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -25,6 +25,7 @@ declare -A MODULE_DESC=(
     [prompt]="Customize bash prompt (alien beam)"
     [tools]="Install CLI tools (bat, eza, fd, fzf, htop, jq, ncdu, ripgrep, duf, tldr)"
     [rofi]="Install and configure rofi app launcher + Catppuccin theme"
+    [dock]="Auto-hiding bottom dock (Dash to Dock extension)"
 )
 
 # ── Module: ghostty ───────────────────────────────────────────────────────
@@ -495,6 +496,57 @@ ROFICONF
     gsettings set "$BINDING_SCHEMA" binding "<Super>d"
 
     echo "  Super+D -> rofi -show drun configured."
+}
+
+# ── Module: dock ──────────────────────────────────────────────────────────
+mod_dock() {
+    echo "[dock] Configuring auto-hiding bottom dock (Dash to Dock)..."
+
+    # --- Install Dash to Dock GNOME extension ---
+    if dnf list installed gnome-shell-extension-dash-to-dock &>/dev/null 2>&1; then
+        echo "  Dash to Dock extension already installed, skipping."
+    else
+        sudo dnf install -y gnome-shell-extension-dash-to-dock
+        echo "  Dash to Dock extension installed."
+    fi
+
+    # --- Enable the extension ---
+    EXT_UUID="dash-to-dock@micxgx.gmail.com"
+    if gnome-extensions list --enabled 2>/dev/null | grep -qF "$EXT_UUID"; then
+        echo "  Extension already enabled."
+    else
+        gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
+        echo "  Extension enabled (may require a session restart to take effect)."
+    fi
+
+    # --- Configure via dconf/gsettings ---
+    DOCK_SCHEMA="org.gnome.shell.extensions.dash-to-dock"
+
+    # Position at the bottom of the screen
+    gsettings set "$DOCK_SCHEMA" dock-position 'BOTTOM'
+
+    # Auto-hide: dock slides away when a window overlaps it
+    gsettings set "$DOCK_SCHEMA" dock-fixed false
+    gsettings set "$DOCK_SCHEMA" autohide true
+    gsettings set "$DOCK_SCHEMA" intellihide true
+    gsettings set "$DOCK_SCHEMA" intellihide-mode 'ALL_WINDOWS'
+
+    # Show the dock when the mouse hits the bottom edge
+    gsettings set "$DOCK_SCHEMA" autohide-in-fullscreen false
+
+    # Animation speed (ms) — snappy reveal/hide
+    gsettings set "$DOCK_SCHEMA" animation-time 0.2
+    gsettings set "$DOCK_SCHEMA" hide-delay 0.2
+    gsettings set "$DOCK_SCHEMA" show-delay 0.0
+
+    # Icon size (48 px default, adjust to taste)
+    gsettings set "$DOCK_SCHEMA" dash-max-icon-size 48
+
+    # Extend the dock across the full bottom edge
+    gsettings set "$DOCK_SCHEMA" extend-height false
+
+    echo "  Dock configured: auto-hiding bottom dock, reveals on mouse hover."
+    echo "  NOTE: Log out and back in (or press Alt+F2 → r → Enter) to activate."
 }
 
 # ── Helper functions ──────────────────────────────────────────────────────
