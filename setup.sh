@@ -100,8 +100,7 @@ keybind = ctrl+right=esc:f
 keybind = shift+home=adjust_selection:beginning_of_line
 keybind = shift+end=adjust_selection:end_of_line
 GHOSTTYKEYS
-        echo "  Ghostty keybindings configured (word jump, word select, line select)."
-    fi
+    echo "  Ghostty keybindings configured (word jump, line select)."
 }
 
 # ── Module: keybinding ────────────────────────────────────────────────────
