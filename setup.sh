@@ -465,24 +465,21 @@ UFOSCRIPT
     # Remove old greeting block from .bashrc
     sed -i '/# ── UFO greeting/,/# ── end UFO greeting/d' "$HOME/.bashrc" 2>/dev/null || true
 
-    # Append new block — runs inside tmux, once per session, in background
+    # Append new block — runs on every new interactive tmux pane, in background
     cat >> "$HOME/.bashrc" <<'GREETING_EOF'
 
 # ── UFO greeting ──────────────────────────────────────────────────────
 if [ -n "$TMUX" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
-    if ! tmux show-environment UFO_GREETED &>/dev/null; then
-        tmux set-environment UFO_GREETED 1
-        _ur=1
-        IFS=';' read -t1 -sdR -p $'\e[6n' _ur _uc </dev/tty 2>/dev/null
-        _ur=${_ur#*[}
-        printf '\n\n'
-        ufo-greeting "$_ur" &
-        unset _ur _uc
-    fi
+    _ur=1
+    IFS=';' read -t1 -sdR -p $'\e[6n' _ur _uc </dev/tty 2>/dev/null
+    _ur=${_ur#*[}
+    printf '\n\n'
+    ufo-greeting "$_ur" &
+    unset _ur _uc
 fi
 # ── end UFO greeting ──────────────────────────────────────────────────
 GREETING_EOF
-    echo "  UFO greeting added to ~/.bashrc (non-blocking, inside tmux)."
+    echo "  UFO greeting added to ~/.bashrc (non-blocking, every new pane)."
 }
 
 # ── Module: tools ─────────────────────────────────────────────────────────
