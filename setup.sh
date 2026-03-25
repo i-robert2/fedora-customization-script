@@ -372,34 +372,21 @@ DEVSCRIPT
     chmod +x "$DEV_SCRIPT"
     echo "  tmux-dev script created at ~/.local/bin/tmux-dev"
 
-    # Auto-attach: when Ghostty opens bash, attach to the last tmux session
-    # (or create a default one). Only runs in interactive non-tmux shells.
-    AUTOATTACH_BLOCK='
+    # Auto-attach: only if a tmux session already exists, join it.
+    # Otherwise, plain shell (start tmux manually with 'tmux' or 'tmux-dev').
+    sed -i '/# ── tmux auto-attach/,/# ── end tmux auto-attach/d' "$HOME/.bashrc" 2>/dev/null || true
+    cat >> "$HOME/.bashrc" <<'AUTOATTACH_EOF'
+
 # ── tmux auto-attach ──────────────────────────────────────────────────
+# If a tmux session is already running, attach to it. Otherwise, plain shell.
 if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -t 0 ]; then
-    # Each Ghostty window gets its own tmux session (main, main-1, main-2, …)
-    _n=0
-    _sess="main"
-    while tmux has-session -t "$_sess" 2>/dev/null; do
-        # Session exists — check if another client is already attached
-        _attached=$(tmux list-clients -t "$_sess" 2>/dev/null | wc -l)
-        if [ "$_attached" -eq 0 ]; then
-            break  # unattached session found, reuse it
-        fi
-        _n=$((_n + 1))
-        _sess="main-$_n"
-    done
-    tmux new-session -A -s "$_sess"
-    _TMUX_RETURNED=1
-    unset _n _sess _attached
+    if tmux list-sessions &>/dev/null; then
+        exec tmux attach
+    fi
 fi
 # ── end tmux auto-attach ─────────────────────────────────────────────
-'
-
-    # Always update the auto-attach block to pick up changes
-    sed -i '/# ── tmux auto-attach/,/# ── end tmux auto-attach/d' "$HOME/.bashrc" 2>/dev/null || true
-    echo "$AUTOATTACH_BLOCK" >> "$HOME/.bashrc"
-    echo "  Auto-attach configured (tmux new-session -A -s main)."
+AUTOATTACH_EOF
+    echo "  Auto-attach configured (joins existing session if one is running)."
 }
 
 # ── Module: prompt ────────────────────────────────────────────────────────
