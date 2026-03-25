@@ -484,16 +484,16 @@ UFOSCRIPT
     # Remove old greeting block from .bashrc
     sed -i '/# ── UFO greeting/,/# ── end UFO greeting/d' "$HOME/.bashrc" 2>/dev/null || true
 
-    # Append new block — runs OUTSIDE tmux, only on fresh terminal open
+    # Append new block — simple: play on every new interactive shell
     cat >> "$HOME/.bashrc" <<'GREETING_EOF'
 
 # ── UFO greeting ──────────────────────────────────────────────────────
-if [ -z "$TMUX" ] && [ -z "$_TMUX_RETURNED" ] && [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
+if [ -t 0 ] && command -v ufo-greeting &>/dev/null; then
     ufo-greeting
 fi
 # ── end UFO greeting ──────────────────────────────────────────────────
 GREETING_EOF
-    echo "  UFO greeting added to ~/.bashrc (runs before tmux auto-attach)."
+    echo "  UFO greeting added to ~/.bashrc."
 }
 
 # ── Module: tools ─────────────────────────────────────────────────────────
