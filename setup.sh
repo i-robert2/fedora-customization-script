@@ -279,8 +279,8 @@ set -g @catppuccin_flavor "mocha"
 set -g @continuum-save-interval '15'
 set -g @continuum-restore 'on'
 
-# tmux-resurrect: capture pane contents
-set -g @resurrect-capture-pane-contents 'on'
+# tmux-resurrect: don't capture pane contents (avoids duplicate prompt on restore)
+set -g @resurrect-capture-pane-contents 'off'
 
 # ── Initialize TPM (keep at very bottom) ──────────────────────────────
 run '~/.tmux/plugins/tpm/tpm'
