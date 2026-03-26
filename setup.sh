@@ -529,7 +529,7 @@ mod_tools() {
         echo "  Extension Manager is already installed, skipping."
     else
         echo "  Installing Extension Manager via Flatpak..."
-        flatpak install -y flathub com.mattjakeman.ExtensionManager
+        flatpak install --user -y flathub com.mattjakeman.ExtensionManager
         echo "  Extension Manager installed."
     fi
 
