@@ -529,6 +529,7 @@ mod_tools() {
         echo "  Extension Manager is already installed, skipping."
     else
         echo "  Installing Extension Manager via Flatpak..."
+        flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         flatpak install --user -y flathub com.mattjakeman.ExtensionManager
         echo "  Extension Manager installed."
     fi
