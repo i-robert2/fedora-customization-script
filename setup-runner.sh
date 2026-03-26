@@ -74,6 +74,12 @@ echo "  Runner configured as 'fedora-vm' with labels: self-hosted, fedora"
 
 # ── 5. Install and start as a service ─────────────────────────────────────
 echo "[5/5] Installing runner as a systemd service..."
+
+# Fix SELinux context so systemd can execute the runner scripts
+sudo restorecon -R "$RUNNER_DIR"
+sudo chcon -R -t bin_t "$RUNNER_DIR/runsvc.sh"
+sudo chcon -R -t bin_t "$RUNNER_DIR/bin"
+
 sudo ./svc.sh install "$(whoami)"
 sudo ./svc.sh start
 echo "  Runner service started and will auto-start on boot."
