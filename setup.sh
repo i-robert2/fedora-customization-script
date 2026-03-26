@@ -3,7 +3,7 @@ set -euo pipefail
 
 ###############################################################################
 # Fedora Workstation Setup Script
-# Run on a fresh Fedora installation to customize the desktop environment.
+# Customize a fresh Fedora installation — terminal, shell, keybindings & more.
 #
 # Usage:
 #   ./setup.sh              Run all modules
