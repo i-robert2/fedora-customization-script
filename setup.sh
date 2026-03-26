@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -23,10 +23,11 @@ declare -A MODULE_DESC=(
     [capslock]="Fix CapsLock sticky/delayed behavior"
     [tmux]="Install and configure tmux + TPM + plugins"
     [prompt]="Customize bash prompt (alien beam)"
-    [tools]="Install CLI tools (bat, btop, eza, fd, fastfetch, fzf, htop, jq, ncdu, ripgrep, duf, tldr)"
+    [tools]="Install CLI tools (bat, btop, eza, fd, fastfetch, fzf, gnome-tweaks, htop, jq, ncdu, ripgrep, duf, tldr) + Extension Manager + User Themes"
     [rofi]="Install and configure rofi app launcher + Catppuccin theme"
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
+    [appgrid]="Organize app grid into category folders"
 )
 
 # ── Module: ghostty ───────────────────────────────────────────────────────
@@ -497,6 +498,7 @@ mod_tools() {
         [fastfetch]="fastfetch" # system info display (neofetch replacement)
         [fd]="fd-find"        # fast find alternative
         [fzf]="fzf"           # fuzzy finder
+        [gnome-tweaks]="gnome-tweaks" # GNOME desktop customization tool
         [htop]="htop"         # interactive process viewer
         [jq]="jq"             # JSON processor
         [ncdu]="ncdu"         # disk usage analyzer
@@ -521,6 +523,25 @@ mod_tools() {
         sudo dnf install -y "${to_install[@]}"
         echo "  CLI tools installed."
     fi
+
+    # --- Extension Manager (Flatpak) ---
+    if flatpak info com.mattjakeman.ExtensionManager &>/dev/null 2>&1; then
+        echo "  Extension Manager is already installed, skipping."
+    else
+        echo "  Installing Extension Manager via Flatpak..."
+        flatpak install -y flathub com.mattjakeman.ExtensionManager
+        echo "  Extension Manager installed."
+    fi
+
+    # --- GNOME User Themes extension ---
+    if gnome-extensions list | grep -q 'user-theme@gnome-shell-extensions.gcampax.github.com'; then
+        echo "  GNOME User Themes extension already installed, skipping."
+    else
+        sudo dnf install -y gnome-shell-extension-user-theme
+        echo "  GNOME User Themes extension installed."
+    fi
+    gnome-extensions enable user-theme@gnome-shell-extensions.gcampax.github.com 2>/dev/null || true
+    echo "  GNOME User Themes extension enabled."
 }
 
 # ── Module: rofi ──────────────────────────────────────────────────────────
@@ -680,6 +701,84 @@ TMREOF
     sudo systemctl daemon-reload
     sudo systemctl enable --now auto-shutdown-idle.timer
     echo "  auto-shutdown-idle timer enabled (checks every 15 min, shuts down after 4h idle)."
+}
+
+# ── Module: appgrid ───────────────────────────────────────────────────────
+mod_appgrid() {
+    echo "[appgrid] Organizing app grid into category folders..."
+
+    FOLDER_SCHEMA="org.gnome.desktop.app-folders"
+    FOLDER_CHILD="org.gnome.desktop.app-folders.folder"
+    FOLDER_PATH="/org/gnome/desktop/app-folders/folders"
+
+    # Enable app folders
+    gsettings set "$FOLDER_SCHEMA" folder-children \
+        "['Office', 'Media', 'System', 'Dev', 'Accessories']"
+
+    # ── Office ─────────────────────────────────────────────────────────
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Office/" name 'Office'
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Office/" apps \
+        "['org.libreoffice.LibreOffice.writer.desktop', \
+          'org.libreoffice.LibreOffice.calc.desktop', \
+          'org.libreoffice.LibreOffice.impress.desktop', \
+          'libreoffice-writer.desktop', \
+          'libreoffice-calc.desktop', \
+          'libreoffice-impress.desktop', \
+          'org.gnome.Contacts.desktop', \
+          'org.gnome.Maps.desktop', \
+          'org.gnome.Weather.desktop', \
+          'org.gnome.Calendar.desktop', \
+          'org.gnome.Clocks.desktop']"
+    echo "  Office folder created."
+
+    # ── Media ──────────────────────────────────────────────────────────
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" name 'Media'
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" apps \
+        "['org.gnome.Totem.desktop', \
+          'org.gnome.Snapshot.desktop', \
+          'org.gnome.Cheese.desktop', \
+          'org.fedoraproject.MediaWriter.desktop', \
+          'org.gnome.Characters.desktop']"
+    echo "  Media folder created."
+
+    # ── System ─────────────────────────────────────────────────────────
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/System/" name 'System'
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/System/" apps \
+        "['org.gnome.Settings.desktop', \
+          'gnome-system-monitor.desktop', \
+          'org.gnome.DiskUtility.desktop', \
+          'org.gnome.Boxes.desktop', \
+          'simple-scan.desktop', \
+          'org.gnome.Logs.desktop', \
+          'org.gnome.Tour.desktop', \
+          'yelp.desktop', \
+          'org.gnome.tweaks.desktop', \
+          'com.mattjakeman.ExtensionManager.desktop']"
+    echo "  System folder created."
+
+    # ── Dev ────────────────────────────────────────────────────────────
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Dev/" name 'Dev'
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Dev/" apps \
+        "['com.visualstudio.code.desktop', \
+          'code.desktop', \
+          'com.ghostty.ghostty.desktop', \
+          'ghostty.desktop', \
+          'org.gnome.Terminal.desktop', \
+          'htop.desktop']"
+    echo "  Dev folder created."
+
+    # ── Accessories ────────────────────────────────────────────────────
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Accessories/" name 'Accessories'
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Accessories/" apps \
+        "['org.gnome.TextEditor.desktop', \
+          'org.gnome.Calculator.desktop', \
+          'org.gnome.FileRoller.desktop', \
+          'org.gnome.Nautilus.desktop', \
+          'rofi.desktop', \
+          'rofi-theme-selector.desktop']"
+    echo "  Accessories folder created."
+
+    echo "  App grid organized into folders."
 }
 
 # ── Helper functions ──────────────────────────────────────────────────────

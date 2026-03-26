@@ -1,0 +1,44 @@
+name: Fedora Setup — Lint & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'setup.sh'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  # ── CI: Lint the script ───────────────────────────────────────────────
+  lint:
+    name: ShellCheck Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint setup.sh
+        run: shellcheck --severity=error setup.sh
+
+  # ── CD: Deploy to VM ──────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Fedora VM
+    needs: lint
+    runs-on: [self-hosted, fedora]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make setup.sh executable
+        run: chmod +x setup.sh
+
+      - name: Run setup.sh
+        env:
+          # gsettings/dconf need the user's D-Bus session
+          DBUS_SESSION_BUS_ADDRESS: unix:path=/run/user/1000/bus
+          DISPLAY: ":1"
+        run: ./setup.sh
