@@ -908,13 +908,13 @@ mod_tiling() {
 
     # Configure tight gaps (0px inner gap = tiles touching)
     local TILE_PATH="/org/gnome/shell/extensions/tiling-assistant"
-    dconf write "$TILE_PATH/window-gap" "2"
-    dconf write "$TILE_PATH/single-screen-gap" "2"
-    dconf write "$TILE_PATH/screen-top-gap" "0"
-    dconf write "$TILE_PATH/screen-bottom-gap" "0"
-    dconf write "$TILE_PATH/screen-left-gap" "0"
-    dconf write "$TILE_PATH/screen-right-gap" "0"
-    echo "  Tiling gaps set to 2px (minimal)."
+    dconf write "$TILE_PATH/window-gap" "8"
+    dconf write "$TILE_PATH/single-screen-gap" "8"
+    dconf write "$TILE_PATH/screen-top-gap" "4"
+    dconf write "$TILE_PATH/screen-bottom-gap" "4"
+    dconf write "$TILE_PATH/screen-left-gap" "4"
+    dconf write "$TILE_PATH/screen-right-gap" "4"
+    echo "  Tiling gaps set to 8px."
 
     # ── 2. Ensure min/max/close buttons are shown ──
     gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
@@ -929,8 +929,7 @@ mod_tiling() {
 
     local JP_PATH="/org/gnome/shell/extensions/just-perfection"
     dconf write "$JP_PATH/panel-in-overview" "true"
-    dconf write "$JP_PATH/panel-background" "0"
-    echo "  Transparent top bar configured via Just Perfection."
+    echo "  Top bar configured via Just Perfection."
 
     # ── 4. White active window border via GNOME Shell theme override ──
     local THEME_DIR="$HOME/.local/share/themes/WhiteBorder/gnome-shell"
@@ -939,6 +938,11 @@ mod_tiling() {
     cat > "$THEME_DIR/gnome-shell.css" <<'SHELLCSS'
 /* Import the default Adwaita theme */
 @import url("resource:///org/gnome/shell/theme/gnome-shell.css");
+
+/* Semi-transparent grey top bar */
+#panel {
+    background-color: rgba(40, 40, 40, 0.7) !important;
+}
 
 /* White border on focused windows */
 .window-clone .window-caption {
@@ -954,24 +958,28 @@ SHELLCSS
     local GTK4_CSS="$HOME/.config/gtk-4.0/gtk.css"
     mkdir -p "$(dirname "$GTK4_CSS")"
     cat > "$GTK4_CSS" <<'GTKCSS'
-/* White border on focused windows */
+/* Bright white border on focused windows, dim on unfocused */
 window.csd {
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 6px;
 }
 window.csd:backdrop {
-    border: 1px solid rgba(255,255,255,0.03);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
 }
 GTKCSS
 
     local GTK3_CSS="$HOME/.config/gtk-3.0/gtk.css"
     mkdir -p "$(dirname "$GTK3_CSS")"
     cat > "$GTK3_CSS" <<'GTK3CSS'
-/* White border on focused windows */
+/* Bright white border on focused windows, dim on unfocused */
 decoration {
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 6px;
 }
 decoration:backdrop {
-    border: 1px solid rgba(255,255,255,0.03);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
 }
 GTK3CSS
 
