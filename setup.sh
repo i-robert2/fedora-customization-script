@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock wobbly windowfx appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock wobbly windowfx wallpaper appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -30,6 +30,7 @@ declare -A MODULE_DESC=(
     [dock]="Install Dash to Dock with auto-hide at bottom"
     [wobbly]="Wobbly jelly windows when dragging"
     [windowfx]="Fast zoom animations for window open/close"
+    [wallpaper]="Solid black 4K wallpaper"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -761,62 +762,50 @@ mod_wobbly() {
     echo "[wobbly] Installing wobbly windows effect..."
 
     local EXT_ID="compiz-alike-windows-effect@herber.space"
-    local EXT_PK=3210
     local EXT_DIR="$HOME/.local/share/gnome-shell/extensions/$EXT_ID"
 
-    if gnome-extensions list 2>/dev/null | grep -q "$EXT_ID"; then
-        echo "  Compiz-alike-windows-effect already installed, skipping."
-    else
-        # The GitHub repo is archived with no releases, so install from
-        # extensions.gnome.org instead.
-        local GNOME_VER
-        GNOME_VER=$(gnome-shell --version 2>/dev/null | grep -oP '\d+' | head -1)
-        local WOBBLY_ZIP
-        WOBBLY_ZIP="$(mktemp /tmp/wobbly-XXXX.zip)"
-        curl -fsSL -o "$WOBBLY_ZIP" \
-            "https://extensions.gnome.org/extension-data/compiz-alike-windows-effectherber.space.v${EXT_PK:+20}.shell-extension.zip" \
-            2>/dev/null || \
-        curl -fsSL -o "$WOBBLY_ZIP" \
-            "https://extensions.gnome.org/download-extension/compiz-alike-windows-effect%40herber.space.shell-extension.zip?version_tag=${EXT_PK}" \
-            2>/dev/null || true
+    # Always force-install (gnome-extensions list is unreliable outside a live session)
+    local WOBBLY_ZIP
+    WOBBLY_ZIP="$(mktemp /tmp/wobbly-XXXX.zip)"
 
-        if [ -s "$WOBBLY_ZIP" ]; then
-            gnome-extensions install --force "$WOBBLY_ZIP"
-            echo "  Compiz-alike-windows-effect installed from extensions.gnome.org."
-        else
-            # Fallback: install from Fedora repos if available
-            sudo dnf install -y gnome-shell-extension-compiz-alike-windows-effect 2>/dev/null || \
-                echo "  WARNING: Could not install wobbly windows extension. Install manually from Extension Manager."
-        fi
-        rm -f "$WOBBLY_ZIP"
+    # Try extensions.gnome.org with known version tags
+    curl -fsSL -o "$WOBBLY_ZIP" \
+        "https://extensions.gnome.org/extension-data/compiz-alike-windows-effectherber.space.v20.shell-extension.zip" \
+        2>/dev/null || \
+    curl -fsSL -o "$WOBBLY_ZIP" \
+        "https://extensions.gnome.org/extension-data/compiz-alike-windows-effectherber.space.v19.shell-extension.zip" \
+        2>/dev/null || true
+
+    if [ -s "$WOBBLY_ZIP" ]; then
+        gnome-extensions install --force "$WOBBLY_ZIP"
+        echo "  Compiz-alike-windows-effect installed from extensions.gnome.org."
+    else
+        sudo dnf install -y gnome-shell-extension-compiz-alike-windows-effect 2>/dev/null || \
+            echo "  WARNING: Could not install wobbly windows extension. Install manually from Extension Manager."
     fi
+    rm -f "$WOBBLY_ZIP"
 
     gnome-extensions enable "$EXT_ID" 2>/dev/null || true
     echo "  Wobbly windows enabled."
-    echo "  NOTE: Log out & back in to activate."
 }
 
 # ── Module: windowfx ──────────────────────────────────────────────────────
 mod_windowfx() {
-    echo "[windowfx] Configuring fast zoom animations for window open/close..."
+    echo "[windowfx] Configuring glitch animations for window open/close..."
 
     local EXT_ID="burn-my-windows@schneegans.github.com"
 
     # Ensure animations are enabled
     gsettings set org.gnome.desktop.interface enable-animations true
 
-    # --- Install Burn My Windows from GitHub ---
-    if gnome-extensions list 2>/dev/null | grep -q "$EXT_ID"; then
-        echo "  Burn My Windows already installed, skipping."
-    else
-        local BMW_ZIP
-        BMW_ZIP="$(mktemp /tmp/burn-my-windows-XXXX.zip)"
-        curl -fsSL -o "$BMW_ZIP" \
-            "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"
-        gnome-extensions install --force "$BMW_ZIP"
-        rm -f "$BMW_ZIP"
-        echo "  Burn My Windows installed from GitHub."
-    fi
+    # Always force-install (gnome-extensions list is unreliable outside a live session)
+    local BMW_ZIP
+    BMW_ZIP="$(mktemp /tmp/burn-my-windows-XXXX.zip)"
+    curl -fsSL -o "$BMW_ZIP" \
+        "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"
+    gnome-extensions install --force "$BMW_ZIP"
+    rm -f "$BMW_ZIP"
+    echo "  Burn My Windows installed/updated."
 
     gnome-extensions enable "$EXT_ID" 2>/dev/null || true
     echo "  Burn My Windows enabled."
@@ -856,12 +845,45 @@ tv-glitch-enable-effect=false
 wisps-enable-effect=false
 BMWPROFILE
 
-    # Point extension to the zoom profile
+    # Point extension to the zoom profile (must be absolute path)
     dconf write /org/gnome/shell/extensions/burn-my-windows/active-profile \
-        "'$PROFILE_DIR/zoom.conf'"
+        "'${PROFILE_DIR}/zoom.conf'"
 
     echo "  Glitch animations configured (300ms)."
     echo "  NOTE: Log out & back in to activate."
+}
+
+# ── Module: wallpaper ─────────────────────────────────────────────────────
+mod_wallpaper() {
+    echo "[wallpaper] Setting solid black 4K wallpaper..."
+
+    local WALL_DIR="$HOME/.local/share/backgrounds"
+    local WALL_FILE="$WALL_DIR/solid-black-4k.png"
+    mkdir -p "$WALL_DIR"
+
+    if [ ! -f "$WALL_FILE" ]; then
+        # Generate a 3840x2160 solid black PNG
+        if command -v convert &>/dev/null; then
+            convert -size 3840x2160 xc:black "$WALL_FILE"
+        elif command -v magick &>/dev/null; then
+            magick -size 3840x2160 xc:black "$WALL_FILE"
+        else
+            # Fallback: install ImageMagick, generate, then remove if it wasn't installed
+            sudo dnf install -y ImageMagick 2>/dev/null
+            convert -size 3840x2160 xc:black "$WALL_FILE"
+        fi
+        echo "  Generated solid black 4K image."
+    else
+        echo "  Wallpaper already exists, skipping generation."
+    fi
+
+    # Set as wallpaper for both light and dark mode
+    gsettings set org.gnome.desktop.background picture-uri "file://${WALL_FILE}"
+    gsettings set org.gnome.desktop.background picture-uri-dark "file://${WALL_FILE}"
+    gsettings set org.gnome.desktop.background picture-options 'stretched'
+    gsettings set org.gnome.desktop.background primary-color '#000000'
+
+    echo "  Solid black wallpaper applied."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
