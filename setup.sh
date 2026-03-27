@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock wobbly windowfx wallpaper appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -28,8 +28,7 @@ declare -A MODULE_DESC=(
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
     [dock]="Install Dash to Dock with auto-hide at bottom"
-    [wobbly]="Wobbly jelly windows when dragging"
-    [windowfx]="Fast zoom animations for window open/close"
+    [windowfx]="Pixelate animations for window open/close"
     [wallpaper]="Solid black 4K wallpaper"
     [appgrid]="Organize app grid into category folders"
 )
@@ -757,42 +756,6 @@ mod_dock() {
     echo "  Dock configured: bottom, auto-hide."
 }
 
-# ── Module: wobbly ────────────────────────────────────────────────────────
-mod_wobbly() {
-    echo "[wobbly] Installing wobbly windows effect..."
-
-    local EXT_ID="compiz-windows-effect@hermes83.github.com"
-
-    # Use the actively maintained fork (compiz-windows-effect) instead of the
-    # archived compiz-alike-windows-effect which has rendering glitches.
-    local WOBBLY_ZIP
-    WOBBLY_ZIP="$(mktemp /tmp/wobbly-XXXX.zip)"
-
-    curl -fsSL -o "$WOBBLY_ZIP" \
-        "https://github.com/hermes83/compiz-windows-effect/releases/latest/download/compiz-windows-effect@hermes83.github.com.zip" \
-        2>/dev/null || \
-    curl -fsSL -o "$WOBBLY_ZIP" \
-        "https://extensions.gnome.org/extension-data/compiz-windows-effecthermes83.github.com.v14.shell-extension.zip" \
-        2>/dev/null || \
-    curl -fsSL -o "$WOBBLY_ZIP" \
-        "https://extensions.gnome.org/extension-data/compiz-windows-effecthermes83.github.com.v13.shell-extension.zip" \
-        2>/dev/null || true
-
-    if [ -s "$WOBBLY_ZIP" ]; then
-        gnome-extensions install --force "$WOBBLY_ZIP"
-        echo "  Compiz-windows-effect installed."
-    else
-        echo "  WARNING: Could not install wobbly windows. Install 'Compiz windows effect' from Extension Manager."
-    fi
-    rm -f "$WOBBLY_ZIP"
-
-    # Disable the old broken extension if present
-    gnome-extensions disable "compiz-alike-windows-effect@herber.space" 2>/dev/null || true
-
-    gnome-extensions enable "$EXT_ID" 2>/dev/null || true
-    echo "  Wobbly windows enabled."
-}
-
 # ── Module: windowfx ──────────────────────────────────────────────────────
 mod_windowfx() {
     echo "[windowfx] Configuring glitch animations for window open/close..."
@@ -824,7 +787,7 @@ profile-high-priority=true
 profile-window-type=0
 profile-animation-type=0
 pixelate-enable-effect=true
-pixelate-animation-time=375
+pixelate-animation-time=280
 apparition-enable-effect=false
 glitch-enable-effect=false
 broken-glass-enable-effect=false
@@ -851,7 +814,7 @@ BMWPROFILE
     dconf write /org/gnome/shell/extensions/burn-my-windows/active-profile \
         "'${PROFILE_DIR}/zoom.conf'"
 
-    echo "  Pixelate animations configured (375ms)."
+    echo "  Pixelate animations configured (280ms)."
     echo "  NOTE: Log out & back in to activate."
 }
 
