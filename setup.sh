@@ -995,10 +995,26 @@ mod_topbar() {
         local UUID="$1"
         local GNOME_VER
         GNOME_VER=$(gnome-shell --version 2>/dev/null | grep -oP '\d+' | head -1)
-        local INFO_URL="https://extensions.gnome.org/extension-info/?uuid=${UUID}&shell_version=${GNOME_VER}"
-        local DL_URL
+        echo "    Trying $UUID for GNOME $GNOME_VER..."
 
-        DL_URL=$(curl -fsSL "$INFO_URL" 2>/dev/null | grep -oP '"download_url"\s*:\s*"\K[^"]+' || true)
+        local INFO
+        INFO=$(curl -fsSL "https://extensions.gnome.org/extension-info/?uuid=${UUID}&shell_version=${GNOME_VER}" 2>/dev/null || true)
+
+        if [[ -z "$INFO" ]]; then
+            echo "    WARNING: API returned empty for $UUID. Trying dnf fallback..."
+            # Convert UUID to dnf package name guess
+            local PKG_GUESS="gnome-shell-extension-${UUID%%@*}"
+            sudo dnf install -y "$PKG_GUESS" 2>/dev/null || true
+            gnome-extensions enable "$UUID" 2>/dev/null || true
+            return
+        fi
+
+        local DL_URL
+        if command -v jq &>/dev/null; then
+            DL_URL=$(echo "$INFO" | jq -r '.download_url // empty' 2>/dev/null)
+        else
+            DL_URL=$(echo "$INFO" | grep -oP '"download_url"\s*:\s*"\K[^"]+' 2>/dev/null || true)
+        fi
 
         if [[ -n "$DL_URL" ]]; then
             local TMP_ZIP
@@ -1006,13 +1022,14 @@ mod_topbar() {
             curl -fsSL -o "$TMP_ZIP" "https://extensions.gnome.org${DL_URL}" 2>/dev/null
             if [ -s "$TMP_ZIP" ]; then
                 gnome-extensions install --force "$TMP_ZIP"
-                echo "    Installed $UUID from extensions.gnome.org."
+                echo "    OK: Installed $UUID"
             else
-                echo "    WARNING: Download failed for $UUID."
+                echo "    WARNING: Download failed for $UUID"
             fi
             rm -f "$TMP_ZIP"
         else
-            echo "    WARNING: Could not find $UUID for GNOME $GNOME_VER on extensions.gnome.org."
+            echo "    WARNING: No download URL found for $UUID (GNOME $GNOME_VER)"
+            echo "    API response: ${INFO:0:200}"
         fi
 
         gnome-extensions enable "$UUID" 2>/dev/null || true
