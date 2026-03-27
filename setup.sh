@@ -721,8 +721,27 @@ mod_appgrid() {
     FOLDER_PATH="/org/gnome/desktop/app-folders/folders"
 
     # Enable app folders
+    # Order matters: an app goes into the first folder that matches.
+    # Explicit 'apps' entries always win over 'categories' matching.
     gsettings set "$FOLDER_SCHEMA" folder-children \
-        "['Office', 'Media', 'System', 'Dev', 'Accessories']"
+        "['Dev', 'Office', 'Media', 'System', 'Accessories']"
+
+    # ── Dev ────────────────────────────────────────────────────────────
+    # Explicit list only — terminals and dev tools have System category,
+    # so we pin them here before the System folder can grab them.
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Dev/" name 'Dev'
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Dev/" apps \
+        "['com.visualstudio.code.desktop', \
+          'code.desktop', \
+          'com.ghostty.ghostty.desktop', \
+          'com.mitchellh.ghostty.desktop', \
+          'ghostty.desktop', \
+          'org.gnome.Terminal.desktop', \
+          'htop.desktop', \
+          'btop.desktop']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Dev/" categories \
+        "['Development', 'IDE']"
+    echo "  Dev folder created."
 
     # ── Office ─────────────────────────────────────────────────────────
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Office/" name 'Office'
@@ -741,6 +760,8 @@ mod_appgrid() {
           'org.gnome.clocks.desktop', \
           'org.gnome.Evince.desktop', \
           'evince.desktop']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Office/" categories \
+        "['Office', 'Calendar', 'ContactManagement']"
     echo "  Office folder created."
 
     # ── Media ──────────────────────────────────────────────────────────
@@ -758,7 +779,14 @@ mod_appgrid() {
           'rhythmbox.desktop', \
           'org.gnome.Loupe.desktop', \
           'org.gnome.eog.desktop', \
-          'eog.desktop']"
+          'eog.desktop', \
+          'simple-scan.desktop', \
+          'org.gnome.SimpleScan.desktop']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" categories \
+        "['Audio', 'Video', 'AudioVideo', 'Graphics', 'Photography', 'Scanning']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" excluded-apps \
+        "['org.gnome.Font-viewer.desktop', \
+          'org.gnome.font-viewer.desktop']"
     echo "  Media folder created."
 
     # ── System ─────────────────────────────────────────────────────────
@@ -770,8 +798,6 @@ mod_appgrid() {
           'org.gnome.DiskUtility.desktop', \
           'org.gnome.Boxes.desktop', \
           'org.gnome.Connections.desktop', \
-          'simple-scan.desktop', \
-          'org.gnome.SimpleScan.desktop', \
           'org.gnome.Logs.desktop', \
           'org.gnome.Tour.desktop', \
           'yelp.desktop', \
@@ -785,11 +811,10 @@ mod_appgrid() {
           'abrt-applet.desktop', \
           'org.gnome.Font-viewer.desktop', \
           'org.gnome.font-viewer.desktop']"
-    echo "  System folder created."
-
-    # ── Dev ────────────────────────────────────────────────────────────
-    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Dev/" name 'Dev'
-    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Dev/" apps \
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/System/" categories \
+        "['System', 'Security', 'Monitor', 'Settings', 'HardwareSettings', \
+          'PackageManager', 'Network', 'Documentation', 'TerminalEmulator']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/System/" excluded-apps \
         "['com.visualstudio.code.desktop', \
           'code.desktop', \
           'com.ghostty.ghostty.desktop', \
@@ -797,10 +822,11 @@ mod_appgrid() {
           'ghostty.desktop', \
           'org.gnome.Terminal.desktop', \
           'htop.desktop', \
-          'btop.desktop']"
-    echo "  Dev folder created."
+          'btop.desktop', \
+          'org.gnome.Nautilus.desktop']"
+    echo "  System folder created."
 
-    # ── Accessories ────────────────────────────────────────────────────
+    # ── Accessories (catch-all — broad Utility category goes last) ────
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Accessories/" name 'Accessories'
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Accessories/" apps \
         "['org.gnome.TextEditor.desktop', \
@@ -809,6 +835,9 @@ mod_appgrid() {
           'org.gnome.Nautilus.desktop', \
           'rofi.desktop', \
           'rofi-theme-selector.desktop']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Accessories/" categories \
+        "['Utility', 'TextEditor', 'Archiving', 'Calculator', 'Compression', \
+          'FileManager', 'FileTools', 'Core', 'Clock', 'GNOME']"
     echo "  Accessories folder created."
 
     echo "  App grid organized into folders."
