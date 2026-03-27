@@ -761,29 +761,33 @@ mod_dock() {
 mod_wobbly() {
     echo "[wobbly] Installing wobbly windows effect..."
 
-    local EXT_ID="compiz-alike-windows-effect@herber.space"
-    local EXT_DIR="$HOME/.local/share/gnome-shell/extensions/$EXT_ID"
+    local EXT_ID="compiz-windows-effect@hermes83.github.com"
 
-    # Always force-install (gnome-extensions list is unreliable outside a live session)
+    # Use the actively maintained fork (compiz-windows-effect) instead of the
+    # archived compiz-alike-windows-effect which has rendering glitches.
     local WOBBLY_ZIP
     WOBBLY_ZIP="$(mktemp /tmp/wobbly-XXXX.zip)"
 
-    # Try extensions.gnome.org with known version tags
     curl -fsSL -o "$WOBBLY_ZIP" \
-        "https://extensions.gnome.org/extension-data/compiz-alike-windows-effectherber.space.v20.shell-extension.zip" \
+        "https://github.com/hermes83/compiz-windows-effect/releases/latest/download/compiz-windows-effect@hermes83.github.com.zip" \
         2>/dev/null || \
     curl -fsSL -o "$WOBBLY_ZIP" \
-        "https://extensions.gnome.org/extension-data/compiz-alike-windows-effectherber.space.v19.shell-extension.zip" \
+        "https://extensions.gnome.org/extension-data/compiz-windows-effecthermes83.github.com.v14.shell-extension.zip" \
+        2>/dev/null || \
+    curl -fsSL -o "$WOBBLY_ZIP" \
+        "https://extensions.gnome.org/extension-data/compiz-windows-effecthermes83.github.com.v13.shell-extension.zip" \
         2>/dev/null || true
 
     if [ -s "$WOBBLY_ZIP" ]; then
         gnome-extensions install --force "$WOBBLY_ZIP"
-        echo "  Compiz-alike-windows-effect installed from extensions.gnome.org."
+        echo "  Compiz-windows-effect installed."
     else
-        sudo dnf install -y gnome-shell-extension-compiz-alike-windows-effect 2>/dev/null || \
-            echo "  WARNING: Could not install wobbly windows extension. Install manually from Extension Manager."
+        echo "  WARNING: Could not install wobbly windows. Install 'Compiz windows effect' from Extension Manager."
     fi
     rm -f "$WOBBLY_ZIP"
+
+    # Disable the old broken extension if present
+    gnome-extensions disable "compiz-alike-windows-effect@herber.space" 2>/dev/null || true
 
     gnome-extensions enable "$EXT_ID" 2>/dev/null || true
     echo "  Wobbly windows enabled."
@@ -819,11 +823,10 @@ mod_windowfx() {
 profile-high-priority=true
 profile-window-type=0
 profile-animation-type=0
-glitch-enable-effect=true
-glitch-animation-time=300
-glitch-strength=0.5
-glitch-speed=0.5
+pixelate-enable-effect=true
+pixelate-animation-time=375
 apparition-enable-effect=false
+glitch-enable-effect=false
 broken-glass-enable-effect=false
 doom-enable-effect=false
 energize-a-enable-effect=false
@@ -834,7 +837,6 @@ hexagon-enable-effect=false
 incinerate-enable-effect=false
 matrix-enable-effect=false
 paint-brush-enable-effect=false
-pixelate-enable-effect=false
 pixel-wheel-enable-effect=false
 pixel-wipe-enable-effect=false
 portal-enable-effect=false
@@ -849,7 +851,7 @@ BMWPROFILE
     dconf write /org/gnome/shell/extensions/burn-my-windows/active-profile \
         "'${PROFILE_DIR}/zoom.conf'"
 
-    echo "  Glitch animations configured (300ms)."
+    echo "  Pixelate animations configured (375ms)."
     echo "  NOTE: Log out & back in to activate."
 }
 
