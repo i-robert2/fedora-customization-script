@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock wobbly windowfx appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -28,6 +28,7 @@ declare -A MODULE_DESC=(
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
     [dock]="Install Dash to Dock with auto-hide at bottom"
+    [wobbly]="Wobbly jelly windows when dragging"
     [windowfx]="Fast zoom animations for window open/close"
     [appgrid]="Organize app grid into category folders"
 )
@@ -753,6 +754,30 @@ mod_dock() {
     fi
 
     echo "  Dock configured: bottom, auto-hide."
+}
+
+# ── Module: wobbly ────────────────────────────────────────────────────────
+mod_wobbly() {
+    echo "[wobbly] Installing wobbly windows effect..."
+
+    local EXT_ID="compiz-alike-windows-effect@herber.space"
+
+    # --- Install from GitHub ---
+    if gnome-extensions list 2>/dev/null | grep -q "$EXT_ID"; then
+        echo "  Compiz-alike-windows-effect already installed, skipping."
+    else
+        local WOBBLY_ZIP
+        WOBBLY_ZIP="$(mktemp /tmp/wobbly-XXXX.zip)"
+        curl -fsSL -o "$WOBBLY_ZIP" \
+            "https://github.com/hermes83/compiz-alike-windows-effect/releases/latest/download/compiz-alike-windows-effect@herber.space.zip"
+        gnome-extensions install --force "$WOBBLY_ZIP"
+        rm -f "$WOBBLY_ZIP"
+        echo "  Compiz-alike-windows-effect installed from GitHub."
+    fi
+
+    gnome-extensions enable "$EXT_ID" 2>/dev/null || true
+    echo "  Wobbly windows enabled."
+    echo "  NOTE: Log out & back in to activate."
 }
 
 # ── Module: windowfx ──────────────────────────────────────────────────────
