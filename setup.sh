@@ -633,6 +633,14 @@ ROFICONF
 mod_power() {
     echo "[power] Configuring sleep after 3 hours, shutdown after 4 hours of inactivity..."
 
+    # --- Disable screen blanking only inside a VM (prevents screen going black after 5 min) ---
+    if systemd-detect-virt --quiet 2>/dev/null; then
+        gsettings set org.gnome.desktop.session idle-delay 0
+        echo "  VM detected — screen blanking disabled (idle-delay set to 0)."
+    else
+        echo "  Bare metal — keeping default screen blanking (saves battery)."
+    fi
+
     # --- Sleep after 3 hours (10800 seconds) on AC and battery ---
     gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 10800
     gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'suspend'
