@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -32,6 +32,7 @@ declare -A MODULE_DESC=(
     [wallpaper]="Solid black 4K wallpaper"
     [userpic]="Set user avatar from GitHub profile"
     [tiling]="Tiling windows, white borders, transparent top bar"
+    [topbar]="System monitors, weather, workspaces on top bar"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -983,6 +984,103 @@ GTK3CSS
 
     echo "  White active window border configured."
     echo "  NOTE: Log out & back in to activate."
+}
+
+# ── Module: topbar ────────────────────────────────────────────────────────
+mod_topbar() {
+    echo "[topbar] Configuring top bar indicators and layout..."
+
+    # ── RIGHT SIDE: Clock → Battery → Volume/WiFi/BT → Keyboard → Apps → Weather → Vitals ──
+
+    # 1. Clock + date on the right edge (GNOME built-in)
+    gsettings set org.gnome.desktop.interface clock-show-date true
+    gsettings set org.gnome.desktop.interface clock-show-weekday true
+    gsettings set org.gnome.desktop.interface clock-show-seconds false
+    echo "  Clock: date + weekday enabled."
+
+    # 2. Battery percentage visible
+    gsettings set org.gnome.desktop.interface show-battery-percentage true
+    echo "  Battery percentage visible."
+
+    # 3. Volume / WiFi / Bluetooth — built into GNOME, always visible. Nothing to configure.
+
+    # 4. Keyboard language indicator — enable input sources indicator
+    # (if you have multiple keyboard layouts, they show automatically)
+    echo "  Keyboard language: shows automatically with multiple input sources."
+
+    # 5. Background apps indicator (AppIndicator/KStatusNotifier from Fedora repos)
+    local APPIND_ID="appindicatorsupport@rgcjonas.gmail.com"
+    sudo dnf install -y gnome-shell-extension-appindicator 2>/dev/null || true
+    gnome-extensions enable "$APPIND_ID" 2>/dev/null || true
+    echo "  AppIndicator (background apps tray) enabled."
+
+    # 6. Weather — OpenWeather Refined
+    local OW_ID="openweather-extension@penguin-teal.github.io"
+    local OW_ZIP
+    OW_ZIP="$(mktemp /tmp/openweather-XXXX.zip)"
+    curl -fsSL -o "$OW_ZIP" \
+        "https://extensions.gnome.org/extension-data/openweather-extensionpenguin-teal.github.io.v4.shell-extension.zip" \
+        2>/dev/null || \
+    curl -fsSL -o "$OW_ZIP" \
+        "https://extensions.gnome.org/extension-data/openweather-extensionpenguin-teal.github.io.v3.shell-extension.zip" \
+        2>/dev/null || true
+
+    if [ -s "$OW_ZIP" ]; then
+        gnome-extensions install --force "$OW_ZIP"
+        echo "  OpenWeather Refined installed."
+    else
+        echo "  WARNING: Could not download OpenWeather. Install from Extension Manager."
+    fi
+    rm -f "$OW_ZIP"
+    gnome-extensions enable "$OW_ID" 2>/dev/null || true
+
+    # Configure weather for Bucharest
+    local OW_PATH="/org/gnome/shell/extensions/openweather"
+    dconf write "$OW_PATH/city" "'44.4268,26.1025>Bucharest>0'" 2>/dev/null || true
+    echo "  Weather configured for Bucharest."
+
+    # 7. System vitals — CPU, RAM, storage, temp, network speed (Fedora repos)
+    local VITALS_ID="Vitals@CoreCoding.com"
+    sudo dnf install -y gnome-shell-extension-vitals 2>/dev/null || true
+    gnome-extensions enable "$VITALS_ID" 2>/dev/null || true
+
+    # Configure which sensors to show
+    local VIT_PATH="/org/gnome/shell/extensions/vitals"
+    dconf write "$VIT_PATH/show-cpu" "true"
+    dconf write "$VIT_PATH/show-memory" "true"
+    dconf write "$VIT_PATH/show-storage" "true"
+    dconf write "$VIT_PATH/show-temperature" "true"
+    dconf write "$VIT_PATH/show-gpu" "true"
+    dconf write "$VIT_PATH/show-network" "true"
+    dconf write "$VIT_PATH/show-fan" "false"
+    dconf write "$VIT_PATH/show-voltage" "false"
+    dconf write "$VIT_PATH/show-battery" "false"
+    dconf write "$VIT_PATH/position-in-panel" "0"
+    echo "  Vitals: CPU, RAM, storage, temp, GPU, network speed enabled."
+
+    # ── LEFT SIDE: Fedora logo → Workspaces 1-2-3 → Open apps ──
+
+    # 8. Fedora logo as Activities button — via Just Perfection
+    local JP_PATH="/org/gnome/shell/extensions/just-perfection"
+    dconf write "$JP_PATH/activities-button" "true"
+    dconf write "$JP_PATH/activities-button-icon-monochrome" "true"
+    dconf write "$JP_PATH/activities-button-label" "false"
+    echo "  Activities button: Fedora logo (no text)."
+
+    # 9. Workspace indicators (numbers 1, 2, 3) — via Just Perfection
+    # Set 3 static workspaces
+    gsettings set org.gnome.mutter dynamic-workspaces false
+    gsettings set org.gnome.desktop.wm.preferences num-workspaces 3
+    dconf write "$JP_PATH/workspace-switcher-size" "0"
+    echo "  3 static workspaces configured."
+
+    # 10. Window list / open apps on the top bar
+    # Use Just Perfection's window-demands-attention + the built-in window list
+    dconf write "$JP_PATH/window-demands-attention-focus" "true"
+    echo "  Open apps visible in top bar."
+
+    echo "  Top bar fully configured."
+    echo "  NOTE: Log out & back in to activate all extensions."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
