@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -31,6 +31,7 @@ declare -A MODULE_DESC=(
     [windowfx]="Pixelate animations for window open/close"
     [wallpaper]="Solid black 4K wallpaper"
     [userpic]="Set user avatar from GitHub profile"
+    [tiling]="Tiling windows, white borders, transparent top bar"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -880,6 +881,102 @@ EOF
     fi
 
     echo "  User avatar set (visible on login screen + system menu)."
+}
+
+# ── Module: tiling ────────────────────────────────────────────────────────
+mod_tiling() {
+    echo "[tiling] Configuring tiling windows, white borders, transparent top bar..."
+
+    # ── 1. Tiling Assistant extension (snap windows in grid with tight gaps) ──
+    local TILE_ID="tiling-assistant@leleat-on-github"
+    local TILE_ZIP
+    TILE_ZIP="$(mktemp /tmp/tiling-assistant-XXXX.zip)"
+
+    curl -fsSL -o "$TILE_ZIP" \
+        "https://github.com/Leleat/Tiling-Assistant/releases/latest/download/tiling-assistant@leleat-on-github.zip" \
+        2>/dev/null || true
+
+    if [ -s "$TILE_ZIP" ]; then
+        gnome-extensions install --force "$TILE_ZIP"
+        echo "  Tiling Assistant installed."
+    else
+        echo "  WARNING: Could not download Tiling Assistant. Install from Extension Manager."
+    fi
+    rm -f "$TILE_ZIP"
+
+    gnome-extensions enable "$TILE_ID" 2>/dev/null || true
+
+    # Configure tight gaps (0px inner gap = tiles touching)
+    local TILE_PATH="/org/gnome/shell/extensions/tiling-assistant"
+    dconf write "$TILE_PATH/window-gap" "2"
+    dconf write "$TILE_PATH/single-screen-gap" "2"
+    dconf write "$TILE_PATH/screen-top-gap" "0"
+    dconf write "$TILE_PATH/screen-bottom-gap" "0"
+    dconf write "$TILE_PATH/screen-left-gap" "0"
+    dconf write "$TILE_PATH/screen-right-gap" "0"
+    echo "  Tiling gaps set to 2px (minimal)."
+
+    # ── 2. Ensure min/max/close buttons are shown ──
+    gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
+    echo "  Window buttons: minimize, maximize, close (top-right)."
+
+    # ── 3. White active window border ──
+    # Use custom GTK CSS for a visible white border on focused windows
+    local GTK_CSS_DIR="$HOME/.config/gtk-4.0"
+    local GTK_CSS="$GTK_CSS_DIR/gtk.css"
+    mkdir -p "$GTK_CSS_DIR"
+
+    # Also set GNOME's focus highlight color
+    gsettings set org.gnome.desktop.wm.preferences focus-mode 'click'
+
+    # ── 4. Transparent top bar (full width, glued to top) ──
+    local TTBAR_ID="transparent-top-bar@ftpix.com"
+    local TTBAR_ZIP
+    TTBAR_ZIP="$(mktemp /tmp/transparent-topbar-XXXX.zip)"
+
+    curl -fsSL -o "$TTBAR_ZIP" \
+        "https://extensions.gnome.org/extension-data/transparent-top-barftpix.com.v16.shell-extension.zip" \
+        2>/dev/null || \
+    curl -fsSL -o "$TTBAR_ZIP" \
+        "https://extensions.gnome.org/extension-data/transparent-top-barftpix.com.v15.shell-extension.zip" \
+        2>/dev/null || true
+
+    if [ -s "$TTBAR_ZIP" ]; then
+        gnome-extensions install --force "$TTBAR_ZIP"
+        echo "  Transparent Top Bar installed."
+    else
+        echo "  WARNING: Could not download Transparent Top Bar. Install from Extension Manager."
+    fi
+    rm -f "$TTBAR_ZIP"
+
+    gnome-extensions enable "$TTBAR_ID" 2>/dev/null || true
+
+    # Also apply a custom GNOME Shell CSS for white active window borders
+    local SHELL_CSS_DIR="$HOME/.local/share/gnome-shell/extensions"
+    local CUSTOM_CSS="$HOME/.config/gtk-4.0/gtk.css"
+    mkdir -p "$(dirname "$CUSTOM_CSS")"
+
+    # Write/overwrite the GTK4 CSS for white focused window decoration
+    cat > "$CUSTOM_CSS" <<'GTKCSS'
+/* White border on focused windows */
+window.csd:focus {
+    border: 2px solid #ffffff;
+}
+GTKCSS
+
+    # Copy same for GTK3 apps
+    local GTK3_CSS="$HOME/.config/gtk-3.0/gtk.css"
+    mkdir -p "$(dirname "$GTK3_CSS")"
+    cat > "$GTK3_CSS" <<'GTK3CSS'
+/* White border on focused windows */
+.csd:focus decoration {
+    border: 2px solid #ffffff;
+}
+GTK3CSS
+
+    echo "  White active window border configured."
+    echo "  Transparent top bar configured."
+    echo "  NOTE: Log out & back in to activate extensions."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
