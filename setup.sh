@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -28,6 +28,7 @@ declare -A MODULE_DESC=(
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
     [dock]="Install Dash to Dock with auto-hide at bottom"
+    [windowfx]="Fast zoom animations for window open/close"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -752,6 +753,74 @@ mod_dock() {
     fi
 
     echo "  Dock configured: bottom, auto-hide."
+}
+
+# ── Module: windowfx ──────────────────────────────────────────────────────
+mod_windowfx() {
+    echo "[windowfx] Configuring fast zoom animations for window open/close..."
+
+    local EXT_ID="burn-my-windows@schneegans.github.com"
+
+    # Ensure animations are enabled
+    gsettings set org.gnome.desktop.interface enable-animations true
+
+    # --- Install Burn My Windows from GitHub ---
+    if gnome-extensions list 2>/dev/null | grep -q "$EXT_ID"; then
+        echo "  Burn My Windows already installed, skipping."
+    else
+        local BMW_ZIP
+        BMW_ZIP="$(mktemp /tmp/burn-my-windows-XXXX.zip)"
+        curl -fsSL -o "$BMW_ZIP" \
+            "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"
+        gnome-extensions install --force "$BMW_ZIP"
+        rm -f "$BMW_ZIP"
+        echo "  Burn My Windows installed from GitHub."
+    fi
+
+    gnome-extensions enable "$EXT_ID" 2>/dev/null || true
+    echo "  Burn My Windows enabled."
+
+    # --- Create a zoom profile (Apparition with no fog = clean zoom) ---
+    local PROFILE_DIR="$HOME/.config/burn-my-windows/profiles"
+    mkdir -p "$PROFILE_DIR"
+
+    cat > "$PROFILE_DIR/zoom.conf" <<'BMWPROFILE'
+[burn-my-windows-profile]
+profile-high-priority=true
+profile-window-type=0
+profile-animation-type=0
+apparition-enable-effect=true
+apparition-animation-time=150
+apparition-randomness=0.0
+apparition-shake-intensity=0.0
+broken-glass-enable-effect=false
+doom-enable-effect=false
+energize-a-enable-effect=false
+energize-b-enable-effect=false
+fire-enable-effect=false
+glide-enable-effect=false
+glitch-enable-effect=false
+hexagon-enable-effect=false
+incinerate-enable-effect=false
+matrix-enable-effect=false
+paint-brush-enable-effect=false
+pixelate-enable-effect=false
+pixel-wheel-enable-effect=false
+pixel-wipe-enable-effect=false
+portal-enable-effect=false
+snap-enable-effect=false
+trex-enable-effect=false
+tv-enable-effect=false
+tv-glitch-enable-effect=false
+wisps-enable-effect=false
+BMWPROFILE
+
+    # Point extension to the zoom profile
+    dconf write /org/gnome/shell/extensions/burn-my-windows/active-profile \
+        "'$PROFILE_DIR/zoom.conf'"
+
+    echo "  Fast zoom animations configured (150ms)."
+    echo "  NOTE: Log out & back in to activate."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
