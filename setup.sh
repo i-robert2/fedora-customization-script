@@ -916,9 +916,11 @@ mod_tiling() {
     dconf write "$TILE_PATH/screen-right-gap" "4"
     echo "  Tiling gaps set to 8px."
 
-    # ── 2. Ensure min/max/close buttons are shown ──
+    # ── 2. Ensure min/max/close buttons + dark theme ──
     gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
-    echo "  Window buttons: minimize, maximize, close (top-right)."
+    gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+    gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
+    echo "  Window buttons + dark theme configured."
 
     # ── 3. Transparent top bar using Just Perfection (Fedora repos — reliable) ──
     local JP_ID="just-perfection-desktop@just-perfection"
@@ -958,28 +960,24 @@ SHELLCSS
     local GTK4_CSS="$HOME/.config/gtk-4.0/gtk.css"
     mkdir -p "$(dirname "$GTK4_CSS")"
     cat > "$GTK4_CSS" <<'GTKCSS'
-/* Bright white border on focused windows, dim on unfocused */
+/* White glow on focused windows via shadow (no border trace artifacts) */
 window.csd {
-    border: 2px solid rgba(255,255,255,0.6);
-    border-radius: 6px;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
 }
 window.csd:backdrop {
-    border: 2px solid rgba(255,255,255,0.08);
-    border-radius: 6px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
 }
 GTKCSS
 
     local GTK3_CSS="$HOME/.config/gtk-3.0/gtk.css"
     mkdir -p "$(dirname "$GTK3_CSS")"
     cat > "$GTK3_CSS" <<'GTK3CSS'
-/* Bright white border on focused windows, dim on unfocused */
+/* White glow on focused windows via shadow (no border trace artifacts) */
 decoration {
-    border: 2px solid rgba(255,255,255,0.6);
-    border-radius: 6px;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
 }
 decoration:backdrop {
-    border: 2px solid rgba(255,255,255,0.08);
-    border-radius: 6px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
 }
 GTK3CSS
 
