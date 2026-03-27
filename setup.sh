@@ -988,33 +988,17 @@ GTK3CSS
 
 # ── Module: topbar ────────────────────────────────────────────────────────
 mod_topbar() {
-    echo "[topbar] Configuring top bar indicators and layout..."
+    echo "[topbar] Configuring top bar with Dash to Panel..."
 
     # Helper: install a GNOME extension by UUID from extensions.gnome.org
     _install_ego_ext() {
         local UUID="$1"
         local GNOME_VER
         GNOME_VER=$(gnome-shell --version 2>/dev/null | grep -oP '\d+' | head -1)
-        echo "    Trying $UUID for GNOME $GNOME_VER..."
-
-        local INFO
-        INFO=$(curl -fsSL "https://extensions.gnome.org/extension-info/?uuid=${UUID}&shell_version=${GNOME_VER}" 2>/dev/null || true)
-
-        if [[ -z "$INFO" ]]; then
-            echo "    WARNING: API returned empty for $UUID. Trying dnf fallback..."
-            # Convert UUID to dnf package name guess
-            local PKG_GUESS="gnome-shell-extension-${UUID%%@*}"
-            sudo dnf install -y "$PKG_GUESS" 2>/dev/null || true
-            gnome-extensions enable "$UUID" 2>/dev/null || true
-            return
-        fi
 
         local DL_URL
-        if command -v jq &>/dev/null; then
-            DL_URL=$(echo "$INFO" | jq -r '.download_url // empty' 2>/dev/null)
-        else
-            DL_URL=$(echo "$INFO" | grep -oP '"download_url"\s*:\s*"\K[^"]+' 2>/dev/null || true)
-        fi
+        DL_URL=$(curl -fsSL "https://extensions.gnome.org/extension-info/?uuid=${UUID}&shell_version=${GNOME_VER}" 2>/dev/null \
+            | jq -r '.download_url // empty' 2>/dev/null)
 
         if [[ -n "$DL_URL" ]]; then
             local TMP_ZIP
@@ -1022,49 +1006,62 @@ mod_topbar() {
             curl -fsSL -o "$TMP_ZIP" "https://extensions.gnome.org${DL_URL}" 2>/dev/null
             if [ -s "$TMP_ZIP" ]; then
                 gnome-extensions install --force "$TMP_ZIP"
-                echo "    OK: Installed $UUID"
-            else
-                echo "    WARNING: Download failed for $UUID"
+                echo "    OK: $UUID"
             fi
             rm -f "$TMP_ZIP"
-        else
-            echo "    WARNING: No download URL found for $UUID (GNOME $GNOME_VER)"
-            echo "    API response: ${INFO:0:200}"
         fi
-
         gnome-extensions enable "$UUID" 2>/dev/null || true
     }
 
-    # ── RIGHT SIDE ──
+    # ── 1. Install Dash to Panel (replaces top bar + dock into one panel) ──
+    echo "  Installing Dash to Panel..."
+    _install_ego_ext "dash-to-panel@jderose9.github.com"
 
-    # 1. Clock + date on the right
-    gsettings set org.gnome.desktop.interface clock-show-date true
-    gsettings set org.gnome.desktop.interface clock-show-weekday true
-    gsettings set org.gnome.desktop.interface clock-show-seconds false
-    echo "  Clock: date + weekday enabled."
+    # Disable Dash to Dock (Dash to Panel replaces it)
+    gnome-extensions disable "dash-to-dock@micxgx.gmail.com" 2>/dev/null || true
+    echo "  Dash to Dock disabled (Dash to Panel handles everything)."
 
-    # 2. Battery percentage
-    gsettings set org.gnome.desktop.interface show-battery-percentage true
-    echo "  Battery percentage visible."
-
-    # 3. Volume / WiFi / Bluetooth — GNOME built-in, always visible
-
-    # 4. Keyboard language — shows automatically with multiple input sources
-
-    # 5. Background apps tray (AppIndicator)
-    echo "  Installing AppIndicator..."
-    _install_ego_ext "appindicatorsupport@rgcjonas.gmail.com"
-
-    # 6. Weather — OpenWeather Refined
-    echo "  Installing OpenWeather Refined..."
-    _install_ego_ext "openweather-extension@penguin-teal.github.io"
-    # Configure for Bucharest
-    dconf write /org/gnome/shell/extensions/openweather/city "'44.4268,26.1025>Bucharest>0'" 2>/dev/null || true
-    echo "  Weather configured for Bucharest."
-
-    # 7. System vitals — CPU, RAM, storage, temp, network speed
+    # ── 2. Install supporting extensions ──
     echo "  Installing Vitals..."
     _install_ego_ext "Vitals@CoreCoding.com"
+    echo "  Installing AppIndicator..."
+    _install_ego_ext "appindicatorsupport@rgcjonas.gmail.com"
+    echo "  Installing OpenWeather Refined..."
+    _install_ego_ext "openweather-extension@penguin-teal.github.io"
+
+    # ── 3. Configure Dash to Panel layout ──
+    local DTP="/org/gnome/shell/extensions/dash-to-panel"
+
+    # Panel on top, height 32px
+    dconf write "$DTP/panel-positions" "'{\"0\":\"TOP\"}'" 2>/dev/null || true
+    dconf write "$DTP/panel-sizes" "'{\"0\":32}'" 2>/dev/null || true
+
+    # Semi-transparent panel background
+    dconf write "$DTP/trans-use-custom-bg" "true" 2>/dev/null || true
+    dconf write "$DTP/trans-bg-color" "'#282828'" 2>/dev/null || true
+    dconf write "$DTP/trans-use-custom-opacity" "true" 2>/dev/null || true
+    dconf write "$DTP/trans-panel-opacity" "0.7" 2>/dev/null || true
+    dconf write "$DTP/trans-use-dynamic-opacity" "false" 2>/dev/null || true
+
+    # LEFT: show Activities button (Fedora logo)
+    dconf write "$DTP/show-activities-button" "true" 2>/dev/null || true
+
+    # Show app icons in panel (running apps as small icons, not wide bars)
+    dconf write "$DTP/dot-style-focused" "'DOTS'" 2>/dev/null || true
+    dconf write "$DTP/dot-style-unfocused" "'DOTS'" 2>/dev/null || true
+
+    # Clock on the right edge
+    dconf write "$DTP/clock-position" "'RIGHT'" 2>/dev/null || true
+
+    # Show window preview on hover
+    dconf write "$DTP/show-window-previews" "true" 2>/dev/null || true
+
+    # Don't group windows
+    dconf write "$DTP/group-apps" "true" 2>/dev/null || true
+
+    echo "  Dash to Panel configured: top, transparent, clock right."
+
+    # ── 4. Vitals on the right side ──
     local VIT_PATH="/org/gnome/shell/extensions/vitals"
     dconf write "$VIT_PATH/show-cpu" "true" 2>/dev/null || true
     dconf write "$VIT_PATH/show-memory" "true" 2>/dev/null || true
@@ -1075,53 +1072,44 @@ mod_topbar() {
     dconf write "$VIT_PATH/show-fan" "false" 2>/dev/null || true
     dconf write "$VIT_PATH/show-voltage" "false" 2>/dev/null || true
     dconf write "$VIT_PATH/show-battery" "false" 2>/dev/null || true
-    # position-in-panel: 0=left, 1=center, 2=right
     dconf write "$VIT_PATH/position-in-panel" "2" 2>/dev/null || true
-    echo "  Vitals: CPU, RAM, storage, temp, GPU, network (right side)."
+    echo "  Vitals configured (right side)."
 
-    # ── LEFT SIDE ──
+    # ── 5. OpenWeather for Bucharest ──
+    dconf write /org/gnome/shell/extensions/openweather/city "'44.4268,26.1025>Bucharest>0'" 2>/dev/null || true
+    echo "  Weather: Bucharest."
 
-    # 8. Fedora logo as Activities button + workspace switcher visible
-    local JP_PATH="/org/gnome/shell/extensions/just-perfection"
-    dconf write "$JP_PATH/activities-button" "true" 2>/dev/null || true
-    dconf write "$JP_PATH/activities-button-icon-monochrome" "true" 2>/dev/null || true
-    dconf write "$JP_PATH/activities-button-label" "false" 2>/dev/null || true
-    # Show workspace switcher in panel (0 = default size, visible)
-    dconf write "$JP_PATH/workspace-switcher-size" "0" 2>/dev/null || true
-    echo "  Activities: Fedora logo. Workspace switcher visible."
-
-    # 9. Workspace indicator (numbers 1, 2, 3)
+    # ── 6. GNOME settings ──
+    gsettings set org.gnome.desktop.interface clock-show-date true
+    gsettings set org.gnome.desktop.interface clock-show-weekday true
+    gsettings set org.gnome.desktop.interface show-battery-percentage true
     gsettings set org.gnome.mutter dynamic-workspaces false
     gsettings set org.gnome.desktop.wm.preferences num-workspaces 3
-    echo "  Installing Workspace Indicator..."
-    _install_ego_ext "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
-    sudo dnf install -y gnome-shell-extension-workspace-indicator 2>/dev/null || true
-    gnome-extensions enable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
-    echo "  3 static workspaces with indicator."
+    echo "  Clock, battery %, 3 workspaces configured."
 
-    # 10. Disable the window-list extension (it creates a full second bar at the bottom)
-    gnome-extensions disable "window-list@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
-    echo "  Window list disabled (use dock for open apps instead)."
-
-    # ── Enable ALL installed extensions that should be active ──
+    # ── 7. Enable all extensions ──
     local EXTS_TO_ENABLE=(
+        "dash-to-panel@jderose9.github.com"
         "appindicatorsupport@rgcjonas.gmail.com"
         "openweather-extension@penguin-teal.github.io"
         "Vitals@CoreCoding.com"
-        "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
         "just-perfection-desktop@just-perfection"
         "user-theme@gnome-shell-extensions.gcampax.github.com"
-        "dash-to-dock@micxgx.gmail.com"
         "burn-my-windows@schneegans.github.com"
     )
     for ext in "${EXTS_TO_ENABLE[@]}"; do
         gnome-extensions enable "$ext" 2>/dev/null || true
     done
-    echo "  All topbar extensions force-enabled."
+
+    # Disable conflicting extensions
+    gnome-extensions disable "dash-to-dock@micxgx.gmail.com" 2>/dev/null || true
+    gnome-extensions disable "window-list@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
+    gnome-extensions disable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
 
     echo ""
-    echo "  Top bar fully configured."
-    echo "  NOTE: Log out & back in to activate all extensions."
+    echo "  Top bar fully configured with Dash to Panel."
+    echo "  Layout: [Fedora] [1 2 3] [open apps] ... [vitals] [weather] [indicators] [clock]"
+    echo "  NOTE: Log out & back in to activate."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
