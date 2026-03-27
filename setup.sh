@@ -737,17 +737,28 @@ mod_appgrid() {
           'org.gnome.Maps.desktop', \
           'org.gnome.Weather.desktop', \
           'org.gnome.Calendar.desktop', \
-          'org.gnome.Clocks.desktop']"
+          'org.gnome.Clocks.desktop', \
+          'org.gnome.clocks.desktop', \
+          'org.gnome.Evince.desktop', \
+          'evince.desktop']"
     echo "  Office folder created."
 
     # ── Media ──────────────────────────────────────────────────────────
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" name 'Media'
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" apps \
         "['org.gnome.Totem.desktop', \
+          'totem.desktop', \
+          'org.gnome.Videos.desktop', \
           'org.gnome.Snapshot.desktop', \
           'org.gnome.Cheese.desktop', \
           'org.fedoraproject.MediaWriter.desktop', \
-          'org.gnome.Characters.desktop']"
+          'org.gnome.Characters.desktop', \
+          'org.gnome.Music.desktop', \
+          'org.gnome.Rhythmbox3.desktop', \
+          'rhythmbox.desktop', \
+          'org.gnome.Loupe.desktop', \
+          'org.gnome.eog.desktop', \
+          'eog.desktop']"
     echo "  Media folder created."
 
     # ── System ─────────────────────────────────────────────────────────
@@ -755,14 +766,25 @@ mod_appgrid() {
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/System/" apps \
         "['org.gnome.Settings.desktop', \
           'gnome-system-monitor.desktop', \
+          'org.gnome.SystemMonitor.desktop', \
           'org.gnome.DiskUtility.desktop', \
           'org.gnome.Boxes.desktop', \
+          'org.gnome.Connections.desktop', \
           'simple-scan.desktop', \
+          'org.gnome.SimpleScan.desktop', \
           'org.gnome.Logs.desktop', \
           'org.gnome.Tour.desktop', \
           'yelp.desktop', \
+          'org.gnome.Yelp.desktop', \
           'org.gnome.tweaks.desktop', \
-          'com.mattjakeman.ExtensionManager.desktop']"
+          'com.mattjakeman.ExtensionManager.desktop', \
+          'org.gnome.baobab.desktop', \
+          'org.freedesktop.MalcontentControl.desktop', \
+          'malcontent-control.desktop', \
+          'gnome-abrt.desktop', \
+          'abrt-applet.desktop', \
+          'org.gnome.Font-viewer.desktop', \
+          'org.gnome.font-viewer.desktop']"
     echo "  System folder created."
 
     # ── Dev ────────────────────────────────────────────────────────────
@@ -771,9 +793,11 @@ mod_appgrid() {
         "['com.visualstudio.code.desktop', \
           'code.desktop', \
           'com.ghostty.ghostty.desktop', \
+          'com.mitchellh.ghostty.desktop', \
           'ghostty.desktop', \
           'org.gnome.Terminal.desktop', \
-          'htop.desktop']"
+          'htop.desktop', \
+          'btop.desktop']"
     echo "  Dev folder created."
 
     # ── Accessories ────────────────────────────────────────────────────
