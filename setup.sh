@@ -1075,17 +1075,20 @@ mod_topbar() {
     dconf write "$VIT_PATH/show-fan" "false" 2>/dev/null || true
     dconf write "$VIT_PATH/show-voltage" "false" 2>/dev/null || true
     dconf write "$VIT_PATH/show-battery" "false" 2>/dev/null || true
-    dconf write "$VIT_PATH/position-in-panel" "0" 2>/dev/null || true
-    echo "  Vitals: CPU, RAM, storage, temp, GPU, network speed."
+    # position-in-panel: 0=left, 1=center, 2=right
+    dconf write "$VIT_PATH/position-in-panel" "2" 2>/dev/null || true
+    echo "  Vitals: CPU, RAM, storage, temp, GPU, network (right side)."
 
     # ── LEFT SIDE ──
 
-    # 8. Fedora logo as Activities button (Just Perfection already installed by tiling)
+    # 8. Fedora logo as Activities button + workspace switcher visible
     local JP_PATH="/org/gnome/shell/extensions/just-perfection"
     dconf write "$JP_PATH/activities-button" "true" 2>/dev/null || true
     dconf write "$JP_PATH/activities-button-icon-monochrome" "true" 2>/dev/null || true
     dconf write "$JP_PATH/activities-button-label" "false" 2>/dev/null || true
-    echo "  Activities button: Fedora logo (no text)."
+    # Show workspace switcher in panel (0 = default size, visible)
+    dconf write "$JP_PATH/workspace-switcher-size" "0" 2>/dev/null || true
+    echo "  Activities: Fedora logo. Workspace switcher visible."
 
     # 9. Workspace indicator (numbers 1, 2, 3)
     gsettings set org.gnome.mutter dynamic-workspaces false
