@@ -920,63 +920,63 @@ mod_tiling() {
     gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
     echo "  Window buttons: minimize, maximize, close (top-right)."
 
-    # ── 3. White active window border ──
-    # Use custom GTK CSS for a visible white border on focused windows
-    local GTK_CSS_DIR="$HOME/.config/gtk-4.0"
-    local GTK_CSS="$GTK_CSS_DIR/gtk.css"
-    mkdir -p "$GTK_CSS_DIR"
-
-    # Also set GNOME's focus highlight color
-    gsettings set org.gnome.desktop.wm.preferences focus-mode 'click'
-
-    # ── 4. Transparent top bar (full width, glued to top) ──
-    local TTBAR_ID="transparent-top-bar@ftpix.com"
-    local TTBAR_ZIP
-    TTBAR_ZIP="$(mktemp /tmp/transparent-topbar-XXXX.zip)"
-
-    curl -fsSL -o "$TTBAR_ZIP" \
-        "https://extensions.gnome.org/extension-data/transparent-top-barftpix.com.v16.shell-extension.zip" \
-        2>/dev/null || \
-    curl -fsSL -o "$TTBAR_ZIP" \
-        "https://extensions.gnome.org/extension-data/transparent-top-barftpix.com.v15.shell-extension.zip" \
-        2>/dev/null || true
-
-    if [ -s "$TTBAR_ZIP" ]; then
-        gnome-extensions install --force "$TTBAR_ZIP"
-        echo "  Transparent Top Bar installed."
-    else
-        echo "  WARNING: Could not download Transparent Top Bar. Install from Extension Manager."
+    # ── 3. Transparent top bar using Just Perfection (Fedora repos — reliable) ──
+    local JP_ID="just-perfection-desktop@just-perfection"
+    if ! gnome-extensions list 2>/dev/null | grep -q "$JP_ID"; then
+        sudo dnf install -y gnome-shell-extension-just-perfection 2>/dev/null || true
     fi
-    rm -f "$TTBAR_ZIP"
+    gnome-extensions enable "$JP_ID" 2>/dev/null || true
 
-    gnome-extensions enable "$TTBAR_ID" 2>/dev/null || true
+    local JP_PATH="/org/gnome/shell/extensions/just-perfection"
+    dconf write "$JP_PATH/panel-in-overview" "true"
+    dconf write "$JP_PATH/panel-background" "0"
+    echo "  Transparent top bar configured via Just Perfection."
 
-    # Also apply a custom GNOME Shell CSS for white active window borders
-    local SHELL_CSS_DIR="$HOME/.local/share/gnome-shell/extensions"
-    local CUSTOM_CSS="$HOME/.config/gtk-4.0/gtk.css"
-    mkdir -p "$(dirname "$CUSTOM_CSS")"
+    # ── 4. White active window border via GNOME Shell theme override ──
+    local THEME_DIR="$HOME/.local/share/themes/WhiteBorder/gnome-shell"
+    mkdir -p "$THEME_DIR"
 
-    # Write/overwrite the GTK4 CSS for white focused window decoration
-    cat > "$CUSTOM_CSS" <<'GTKCSS'
+    cat > "$THEME_DIR/gnome-shell.css" <<'SHELLCSS'
+/* Import the default Adwaita theme */
+@import url("resource:///org/gnome/shell/theme/gnome-shell.css");
+
 /* White border on focused windows */
-window.csd:focus {
-    border: 2px solid #ffffff;
+.window-clone .window-caption {
+    color: white;
+}
+SHELLCSS
+
+    # Apply the user theme (User Themes extension is already installed by tools module)
+    gsettings set org.gnome.shell.extensions.user-theme name 'WhiteBorder'
+    echo "  GNOME Shell theme override applied."
+
+    # Also set GTK CSS for CSD window borders
+    local GTK4_CSS="$HOME/.config/gtk-4.0/gtk.css"
+    mkdir -p "$(dirname "$GTK4_CSS")"
+    cat > "$GTK4_CSS" <<'GTKCSS'
+/* White border on focused windows */
+window.csd {
+    border: 1px solid rgba(255,255,255,0.1);
+}
+window.csd:backdrop {
+    border: 1px solid rgba(255,255,255,0.03);
 }
 GTKCSS
 
-    # Copy same for GTK3 apps
     local GTK3_CSS="$HOME/.config/gtk-3.0/gtk.css"
     mkdir -p "$(dirname "$GTK3_CSS")"
     cat > "$GTK3_CSS" <<'GTK3CSS'
 /* White border on focused windows */
-.csd:focus decoration {
-    border: 2px solid #ffffff;
+decoration {
+    border: 1px solid rgba(255,255,255,0.1);
+}
+decoration:backdrop {
+    border: 1px solid rgba(255,255,255,0.03);
 }
 GTK3CSS
 
     echo "  White active window border configured."
-    echo "  Transparent top bar configured."
-    echo "  NOTE: Log out & back in to activate extensions."
+    echo "  NOTE: Log out & back in to activate."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
