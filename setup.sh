@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -30,6 +30,7 @@ declare -A MODULE_DESC=(
     [dock]="Install Dash to Dock with auto-hide at bottom"
     [windowfx]="Pixelate animations for window open/close"
     [wallpaper]="Solid black 4K wallpaper"
+    [userpic]="Set user avatar from GitHub profile"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -849,6 +850,36 @@ mod_wallpaper() {
     gsettings set org.gnome.desktop.background primary-color '#000000'
 
     echo "  Solid black wallpaper applied."
+}
+
+# ── Module: userpic ───────────────────────────────────────────────────────
+mod_userpic() {
+    echo "[userpic] Setting user avatar from GitHub profile..."
+
+    local AVATAR_URL="https://avatars.githubusercontent.com/u/65817006?v=4"
+    local AVATAR_DIR="$HOME/.local/share/icons"
+    local AVATAR_FILE="$AVATAR_DIR/user-avatar.png"
+    mkdir -p "$AVATAR_DIR"
+
+    curl -fsSL -o "$AVATAR_FILE" "$AVATAR_URL"
+    echo "  Avatar downloaded (full resolution)."
+
+    # Set as the user account picture (shows on login screen + system menu)
+    sudo cp "$AVATAR_FILE" "/var/lib/AccountsService/icons/$(whoami)"
+    sudo chmod 644 "/var/lib/AccountsService/icons/$(whoami)"
+
+    # Update AccountsService config to point to the icon
+    local AS_FILE="/var/lib/AccountsService/users/$(whoami)"
+    if [ -f "$AS_FILE" ]; then
+        sudo sed -i "s|^Icon=.*|Icon=/var/lib/AccountsService/icons/$(whoami)|" "$AS_FILE"
+    else
+        sudo tee "$AS_FILE" > /dev/null <<EOF
+[User]
+Icon=/var/lib/AccountsService/icons/$(whoami)
+EOF
+    fi
+
+    echo "  User avatar set (visible on login screen + system menu)."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
