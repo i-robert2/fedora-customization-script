@@ -761,18 +761,34 @@ mod_wobbly() {
     echo "[wobbly] Installing wobbly windows effect..."
 
     local EXT_ID="compiz-alike-windows-effect@herber.space"
+    local EXT_PK=3210
+    local EXT_DIR="$HOME/.local/share/gnome-shell/extensions/$EXT_ID"
 
-    # --- Install from GitHub ---
     if gnome-extensions list 2>/dev/null | grep -q "$EXT_ID"; then
         echo "  Compiz-alike-windows-effect already installed, skipping."
     else
+        # The GitHub repo is archived with no releases, so install from
+        # extensions.gnome.org instead.
+        local GNOME_VER
+        GNOME_VER=$(gnome-shell --version 2>/dev/null | grep -oP '\d+' | head -1)
         local WOBBLY_ZIP
         WOBBLY_ZIP="$(mktemp /tmp/wobbly-XXXX.zip)"
         curl -fsSL -o "$WOBBLY_ZIP" \
-            "https://github.com/hermes83/compiz-alike-windows-effect/releases/latest/download/compiz-alike-windows-effect@herber.space.zip"
-        gnome-extensions install --force "$WOBBLY_ZIP"
+            "https://extensions.gnome.org/extension-data/compiz-alike-windows-effectherber.space.v${EXT_PK:+20}.shell-extension.zip" \
+            2>/dev/null || \
+        curl -fsSL -o "$WOBBLY_ZIP" \
+            "https://extensions.gnome.org/download-extension/compiz-alike-windows-effect%40herber.space.shell-extension.zip?version_tag=${EXT_PK}" \
+            2>/dev/null || true
+
+        if [ -s "$WOBBLY_ZIP" ]; then
+            gnome-extensions install --force "$WOBBLY_ZIP"
+            echo "  Compiz-alike-windows-effect installed from extensions.gnome.org."
+        else
+            # Fallback: install from Fedora repos if available
+            sudo dnf install -y gnome-shell-extension-compiz-alike-windows-effect 2>/dev/null || \
+                echo "  WARNING: Could not install wobbly windows extension. Install manually from Extension Manager."
+        fi
         rm -f "$WOBBLY_ZIP"
-        echo "  Compiz-alike-windows-effect installed from GitHub."
     fi
 
     gnome-extensions enable "$EXT_ID" 2>/dev/null || true
