@@ -790,7 +790,7 @@ profile-high-priority=true
 profile-window-type=0
 profile-animation-type=0
 glitch-enable-effect=true
-glitch-animation-time=150
+glitch-animation-time=300
 glitch-strength=0.5
 glitch-speed=0.5
 apparition-enable-effect=false
@@ -819,7 +819,7 @@ BMWPROFILE
     dconf write /org/gnome/shell/extensions/burn-my-windows/active-profile \
         "'$PROFILE_DIR/zoom.conf'"
 
-    echo "  Fast zoom animations configured (150ms)."
+    echo "  Glitch animations configured (300ms)."
     echo "  NOTE: Log out & back in to activate."
 }
 
