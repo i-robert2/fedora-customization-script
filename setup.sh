@@ -840,7 +840,11 @@ mod_appgrid() {
           'FileManager', 'FileTools', 'Core', 'Clock', 'GNOME']"
     echo "  Accessories folder created."
 
-    echo "  App grid organized into folders."
+    # Reset the cached grid layout so GNOME rebuilds it from the new folders.
+    # Without this, the old two-page layout persists even after folder changes.
+    gsettings reset org.gnome.shell app-picker-layout
+
+    echo "  App grid organized into folders (layout reset — may need Alt+F2 → r or re-login)."
 }
 
 # ── Helper functions ──────────────────────────────────────────────────────
