@@ -14,7 +14,7 @@ set -euo pipefail
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power appgrid)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock appgrid)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -27,6 +27,7 @@ declare -A MODULE_DESC=(
     [rofi]="Install and configure rofi app launcher + Catppuccin theme"
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
+    [dock]="Install Dash to Dock with auto-hide at bottom"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -710,6 +711,38 @@ TMREOF
     sudo systemctl daemon-reload
     sudo systemctl enable --now auto-shutdown-idle.timer
     echo "  auto-shutdown-idle timer enabled (checks every 15 min, shuts down after 4h idle)."
+}
+
+# ── Module: dock ──────────────────────────────────────────────────────────
+mod_dock() {
+    echo "[dock] Installing and configuring Dash to Dock..."
+
+    local EXT_ID="dash-to-dock@micxgx.gmail.com"
+    local DCONF_PATH="/org/gnome/shell/extensions/dash-to-dock"
+
+    # --- Install from Fedora repos ---
+    if gnome-extensions list 2>/dev/null | grep -q "$EXT_ID"; then
+        echo "  Dash to Dock already installed, skipping."
+    else
+        sudo dnf install -y gnome-shell-extension-dash-to-dock
+        echo "  Dash to Dock installed."
+    fi
+
+    # --- Enable the extension ---
+    gnome-extensions enable "$EXT_ID" 2>/dev/null || true
+    echo "  Dash to Dock enabled."
+
+    # --- Configure: bottom dock, auto-hide on cursor pressure ---
+    dconf write "$DCONF_PATH/dock-position" "'BOTTOM'"
+    dconf write "$DCONF_PATH/dock-fixed" "false"
+    dconf write "$DCONF_PATH/autohide" "true"
+    dconf write "$DCONF_PATH/intellihide" "false"
+    dconf write "$DCONF_PATH/autohide-in-fullscreen" "false"
+    dconf write "$DCONF_PATH/dash-max-icon-size" "40"
+    dconf write "$DCONF_PATH/show-trash" "false"
+    dconf write "$DCONF_PATH/show-mounts" "false"
+
+    echo "  Dock configured: bottom, auto-hide, cursor-pressure reveal."
 }
 
 # ── Module: appgrid ───────────────────────────────────────────────────────
