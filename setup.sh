@@ -1092,16 +1092,29 @@ mod_topbar() {
     gsettings set org.gnome.desktop.wm.preferences num-workspaces 3
     echo "  Installing Workspace Indicator..."
     _install_ego_ext "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
-    # Also try the system package as fallback
     sudo dnf install -y gnome-shell-extension-workspace-indicator 2>/dev/null || true
     gnome-extensions enable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
     echo "  3 static workspaces with indicator."
 
-    # 10. Window list (open apps on top bar)
-    echo "  Installing Window List..."
-    sudo dnf install -y gnome-shell-extension-window-list 2>/dev/null || true
-    gnome-extensions enable "window-list@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
-    echo "  Open apps visible on top bar."
+    # 10. Disable the window-list extension (it creates a full second bar at the bottom)
+    gnome-extensions disable "window-list@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
+    echo "  Window list disabled (use dock for open apps instead)."
+
+    # ── Enable ALL installed extensions that should be active ──
+    local EXTS_TO_ENABLE=(
+        "appindicatorsupport@rgcjonas.gmail.com"
+        "openweather-extension@penguin-teal.github.io"
+        "Vitals@CoreCoding.com"
+        "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
+        "just-perfection-desktop@just-perfection"
+        "user-theme@gnome-shell-extensions.gcampax.github.com"
+        "dash-to-dock@micxgx.gmail.com"
+        "burn-my-windows@schneegans.github.com"
+    )
+    for ext in "${EXTS_TO_ENABLE[@]}"; do
+        gnome-extensions enable "$ext" 2>/dev/null || true
+    done
+    echo "  All topbar extensions force-enabled."
 
     echo ""
     echo "  Top bar fully configured."
