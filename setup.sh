@@ -1084,25 +1084,37 @@ mod_topbar() {
     dconf write "$JP_PATH/workspace-switcher" "false"  # hide native right-side workspace thumbnails (extension handles left side)
     echo "  Clock moved to the right, Activities button hidden, native workspace switcher hidden."
 
-    # ── 5b. Workspace Indicator on the left (clickable workspace buttons) ──
-    echo "  Enabling Workspace Indicator..."
-    sudo dnf install -y gnome-shell-extension-workspace-indicator 2>/dev/null || true
-    gnome-extensions enable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
-    echo "  Workspace Indicator enabled (left side, after Fedora logo)."
+    # ── 5b. Weather position: right side, index 1 (before workspace thumbnails) ──
+    local AW_PATH="/org/gnome/shell/extensions/advanced-weather"
+    dconf write "$AW_PATH/panel-position" "'right'" 2>/dev/null || true
+    dconf write "$AW_PATH/panel-position-index" "1" 2>/dev/null || true
+    dconf write "$AW_PATH/show-temperature-text" "true" 2>/dev/null || true
+    dconf write "$AW_PATH/show-location-indicator" "false" 2>/dev/null || true
+    dconf write "$AW_PATH/icon-size" "16" 2>/dev/null || true
+    dconf write "$AW_PATH/text-size" "13" 2>/dev/null || true
+    echo "  Weather positioned: right side, index 1."
 
     # ── 6. Vitals on the left side ──
     local VIT_PATH="/org/gnome/shell/extensions/vitals"
-    dconf write "$VIT_PATH/show-cpu" "true" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-memory" "true" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-storage" "true" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-temperature" "true" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-gpu" "true" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-network" "true" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-fan" "false" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-voltage" "false" 2>/dev/null || true
-    dconf write "$VIT_PATH/show-battery" "false" 2>/dev/null || true
     dconf write "$VIT_PATH/position-in-panel" "0" 2>/dev/null || true
-    echo "  Vitals configured (left side)."
+    dconf write "$VIT_PATH/use-higher-precision" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/alphabetize" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/use-fixed-widths" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/hide-zeros" "false" 2>/dev/null || true
+    dconf write "$VIT_PATH/hide-icons" "false" 2>/dev/null || true
+    dconf write "$VIT_PATH/menu-centered" "false" 2>/dev/null || true
+    dconf write "$VIT_PATH/update-time" "5" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-temperature" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-voltage" "false" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-fan" "false" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-memory" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-cpu" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-system" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-network" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-storage" "true" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-battery" "false" 2>/dev/null || true
+    dconf write "$VIT_PATH/show-gpu" "true" 2>/dev/null || true
+    echo "  Vitals configured (left, higher precision, fixed widths)."
 
     # ── 7. GNOME settings ──
     gsettings set org.gnome.desktop.interface clock-show-date true
@@ -1124,7 +1136,6 @@ mod_topbar() {
         "just-perfection-desktop@just-perfection"
         "user-theme@gnome-shell-extensions.gcampax.github.com"
         "burn-my-windows@schneegans.github.com"
-        "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
     )
     for ext in "${EXTS_TO_ENABLE[@]}"; do
         gnome-extensions enable "$ext" 2>/dev/null || true
