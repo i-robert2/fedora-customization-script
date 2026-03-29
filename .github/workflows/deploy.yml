@@ -36,9 +36,53 @@ jobs:
       - name: Make setup.sh executable
         run: chmod +x setup.sh
 
-      - name: Run setup.sh
+      - name: Detect changed modules
+        id: modules
+        run: |
+          # Get the diff between this commit and its parent
+          DIFF=$(git diff HEAD~1 HEAD -- setup.sh 2>/dev/null || echo "")
+
+          if [ -z "$DIFF" ]; then
+            echo "modules=all" >> "$GITHUB_OUTPUT"
+            echo "No diff available — will run all modules."
+            exit 0
+          fi
+
+          # Extract module names from changed mod_*() function blocks
+          # Find which lines were added/removed, match section headers
+          CHANGED=$(echo "$DIFF" | grep -oP '(?<=^@@.*@@\s).*mod_\K[a-z]+(?=\(\))' | sort -u)
+
+          # Also check for changes in module registry / helper functions
+          if echo "$DIFF" | grep -qP '(ALL_MODULES|MODULE_DESC|run_module|main\(\))'; then
+            echo "modules=all" >> "$GITHUB_OUTPUT"
+            echo "Core structure changed — will run all modules."
+            exit 0
+          fi
+
+          if [ -z "$CHANGED" ]; then
+            # Fallback: look at the @@ hunk headers for mod_ references
+            CHANGED=$(echo "$DIFF" | grep '^@@' | grep -oP 'mod_\K[a-z]+' | sort -u)
+          fi
+
+          if [ -z "$CHANGED" ]; then
+            echo "modules=all" >> "$GITHUB_OUTPUT"
+            echo "Could not detect specific modules — will run all."
+          else
+            MODS=$(echo "$CHANGED" | tr '\n' ' ' | sed 's/ $//')
+            echo "modules=$MODS" >> "$GITHUB_OUTPUT"
+            echo "Detected changed modules: $MODS"
+          fi
+
+      - name: Run setup.sh (changed modules only)
         env:
-          # gsettings/dconf need the user's D-Bus session
           DBUS_SESSION_BUS_ADDRESS: unix:path=/run/user/1000/bus
           DISPLAY: ":1"
-        run: ./setup.sh
+        run: |
+          MODS="${{ steps.modules.outputs.modules }}"
+          if [ "$MODS" = "all" ]; then
+            echo "Running all modules..."
+            ./setup.sh
+          else
+            echo "Running only: $MODS"
+            ./setup.sh $MODS
+          fi
