@@ -32,7 +32,7 @@ declare -A MODULE_DESC=(
     [wallpaper]="Solid black 4K wallpaper"
     [userpic]="Set user avatar from GitHub profile"
     [tiling]="Tiling windows, white borders, transparent top bar"
-    [topbar]="System monitors, weather, clock-right via Just Perfection"
+    [topbar]="Fedora logo menu, Vitals, weather, tray, clock-right"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -988,7 +988,7 @@ GTK3CSS
 
 # ── Module: topbar ────────────────────────────────────────────────────────
 mod_topbar() {
-    echo "[topbar] Configuring top bar (clock right, Vitals, weather)..."
+    echo "[topbar] Configuring top bar (Fedora logo, Vitals, weather, tray, clock right)..."
 
     # Helper: install a GNOME extension by UUID from extensions.gnome.org
     _install_ego_ext() {
@@ -1013,31 +1013,54 @@ mod_topbar() {
         gnome-extensions enable "$UUID" 2>/dev/null || true
     }
 
-    # ── 1. Install Vitals (system monitors on top bar) ──
+    # ── 1. Fedora logo menu (replaces Activities with distro logo + dropdown) ──
+    echo "  Installing Logo Menu..."
+    _install_ego_ext "logomenu@aryan_k"
+    local LOGO_PATH="/org/gnome/shell/extensions/Logo-menu"
+    dconf write "$LOGO_PATH/menu-button-icon-image" "1"           # 1 = Fedora logo
+    dconf write "$LOGO_PATH/menu-button-icon-size" "22"
+    dconf write "$LOGO_PATH/menu-button-terminal" "'ghostty'"
+    dconf write "$LOGO_PATH/hide-icon-shadow" "true"
+    echo "  Fedora logo menu configured (replaces Activities button)."
+
+    # ── 2. Install Vitals (system monitors on top bar) ──
     echo "  Installing Vitals..."
     _install_ego_ext "Vitals@CoreCoding.com"
 
-    # ── 2. Install AppIndicator (tray icons) ──
-    echo "  Installing AppIndicator..."
-    _install_ego_ext "appindicatorsupport@rgcjonas.gmail.com"
-
-    # ── 3. Weather via GNOME Weather (integrates into clock calendar dropdown) ──
-    if command -v gnome-weather &>/dev/null; then
-        echo "  GNOME Weather already installed, skipping."
-    else
-        sudo dnf install -y gnome-weather
-        echo "  GNOME Weather installed (shows weather in clock calendar dropdown)."
+    # ── 3. Weather on the top bar ──
+    echo "  Installing OpenWeather..."
+    # Try Fedora repo first (more reliable), then EGO as fallback
+    if ! gnome-extensions list 2>/dev/null | grep -q 'openweather'; then
+        sudo dnf install -y gnome-shell-extension-openweather 2>/dev/null || true
     fi
+    # If repo version didn't work, try EGO
+    if ! gnome-extensions list 2>/dev/null | grep -q 'openweather'; then
+        _install_ego_ext "openweatherreloaded@jenslody.de"
+    fi
+    # Enable whichever version is available
+    gnome-extensions enable "openweather-extension@jenslody.de" 2>/dev/null || true
+    gnome-extensions enable "openweatherreloaded@jenslody.de" 2>/dev/null || true
+    # Set Bucharest as location
+    dconf write /org/gnome/shell/extensions/openweather/city "'44.4268,26.1025>Bucharest>0'" 2>/dev/null || true
+    echo "  OpenWeather configured (Bucharest)."
 
-    # ── 4. Move clock to the right via Just Perfection ──
+    # ── 4. AppIndicator + background apps tray ──
+    echo "  Installing AppIndicator (tray icons)..."
+    _install_ego_ext "appindicatorsupport@rgcjonas.gmail.com"
+    local AI_PATH="/org/gnome/shell/extensions/appindicator"
+    dconf write "$AI_PATH/tray-pos" "'right'" 2>/dev/null || true
+    echo "  AppIndicator configured (right side)."
+
+    # ── 5. Move clock to the right via Just Perfection ──
     local JP_ID="just-perfection-desktop@just-perfection"
     gnome-extensions enable "$JP_ID" 2>/dev/null || true
     local JP_PATH="/org/gnome/shell/extensions/just-perfection"
     dconf write "$JP_PATH/clock-menu-position" "1"     # 0=center, 1=right, 2=left
     dconf write "$JP_PATH/clock-menu-position-offset" "0"
-    echo "  Clock moved to the right side of the top bar."
+    dconf write "$JP_PATH/activities-button" "false"   # hide Activities (Logo Menu replaces it)
+    echo "  Clock moved to the right, Activities button hidden."
 
-    # ── 5. Vitals on the left side ──
+    # ── 6. Vitals on the left side ──
     local VIT_PATH="/org/gnome/shell/extensions/vitals"
     dconf write "$VIT_PATH/show-cpu" "true" 2>/dev/null || true
     dconf write "$VIT_PATH/show-memory" "true" 2>/dev/null || true
@@ -1051,7 +1074,7 @@ mod_topbar() {
     dconf write "$VIT_PATH/position-in-panel" "0" 2>/dev/null || true
     echo "  Vitals configured (left side)."
 
-    # ── 6. GNOME settings ──
+    # ── 7. GNOME settings ──
     gsettings set org.gnome.desktop.interface clock-show-date true
     gsettings set org.gnome.desktop.interface clock-show-weekday true
     gsettings set org.gnome.desktop.interface show-battery-percentage true
@@ -1059,11 +1082,12 @@ mod_topbar() {
     gsettings set org.gnome.desktop.wm.preferences num-workspaces 3
     echo "  Clock, battery %, 3 workspaces configured."
 
-    # ── 7. Disable Dash to Panel if previously installed (conflicts with Dash to Dock) ──
+    # ── 8. Disable Dash to Panel if previously installed (conflicts with Dash to Dock) ──
     gnome-extensions disable "dash-to-panel@jderose9.github.com" 2>/dev/null || true
 
-    # ── 8. Enable all extensions ──
+    # ── 9. Enable all extensions ──
     local EXTS_TO_ENABLE=(
+        "logomenu@aryan_k"
         "appindicatorsupport@rgcjonas.gmail.com"
         "Vitals@CoreCoding.com"
         "just-perfection-desktop@just-perfection"
@@ -1079,8 +1103,8 @@ mod_topbar() {
     gnome-extensions disable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
 
     echo ""
-    echo "  Top bar configured (Dash to Dock + Just Perfection)."
-    echo "  Layout: [Activities] [Vitals] ... [indicators] [clock/weather]"
+    echo "  Top bar configured."
+    echo "  Layout: [Fedora ▾] [Vitals] ... [weather] [tray] [indicators] [clock]"
     echo "  NOTE: Log out & back in to activate."
 }
 
