@@ -965,12 +965,25 @@ mod_tiling() {
     dconf write "$TILE_PATH/tile-right-half-ignore-ta" "['<Super>m']"
     gsettings set org.gnome.desktop.wm.keybindings toggle-fullscreen "['<Super>b']"
 
+    # Directional focus navigation between tiled windows (Super+Ctrl+Arrow)
+    gsettings set org.gnome.desktop.wm.keybindings switch-windows-backward "[]"
+    gsettings set org.gnome.desktop.wm.keybindings move-to-side-n "[]"
+    gsettings set org.gnome.desktop.wm.keybindings move-to-side-s "[]"
+    gsettings set org.gnome.desktop.wm.keybindings move-to-side-w "[]"
+    gsettings set org.gnome.desktop.wm.keybindings move-to-side-e "[]"
+    dconf write "$TILE_PATH/dynamic-keybinding-behavior" "1"
+    dconf write "$TILE_PATH/tile-top-half"    "['<Super>Up', '<Super><Control>Up']"
+    dconf write "$TILE_PATH/tile-bottom-half" "['<Super>Down', '<Super><Control>Down']"
+    dconf write "$TILE_PATH/tile-left-half"   "['<Super>Left', '<Super><Control>Left']"
+    dconf write "$TILE_PATH/tile-right-half"  "['<Super>Right', '<Super><Control>Right']"
+
     echo "  Tiling keybindings configured:"
     echo "    Halves (gaps):    Super+Left / Right / Up / Down"
     echo "    Quarters (gaps):  Super+U / I / J / K"
     echo "    Maximize (gaps):  Super+F  |  Restore: Super+Escape"
     echo "    No-gap halves:    Super+N (left) / Super+M (right)"
     echo "    No-gap fullscreen: Super+B"
+    echo "    Focus navigation: Super+Ctrl+Arrow (move focus between tiled windows)"
 
     # ── 2. Ensure min/max/close buttons + dark theme ──
     gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
