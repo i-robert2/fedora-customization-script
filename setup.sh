@@ -955,7 +955,7 @@ mod_tiling() {
     dconf write "$TILE_PATH/tile-bottomright-quarter" "['<Super>k']"
 
     # Maximize (with gaps) / restore
-    dconf write "$TILE_PATH/tile-maximize"  "['<Super>f']"
+    dconf write "$TILE_PATH/tile-maximize"  "['<Super>y']"
     dconf write "$TILE_PATH/restore-window" "['<Super>Escape']"
 
     # No-gap tiling via GNOME native keybindings (ignores Tiling Assistant gaps)
@@ -980,7 +980,7 @@ mod_tiling() {
     echo "  Tiling keybindings configured:"
     echo "    Halves (gaps):    Super+Left / Right / Up / Down"
     echo "    Quarters (gaps):  Super+U / I / J / K"
-    echo "    Maximize (gaps):  Super+F  |  Restore: Super+Escape"
+    echo "    Maximize (gaps):  Super+Y  |  Restore: Super+Escape"
     echo "    No-gap halves:    Super+N (left) / Super+M (right)"
     echo "    No-gap fullscreen: Super+B"
     echo "    Focus navigation: Super+Ctrl+Arrow (move focus between tiled windows)"
