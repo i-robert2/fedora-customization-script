@@ -1087,7 +1087,8 @@ mod_topbar() {
     # ── 5b. Weather in center, to the left of the clock ──
     local AW_PATH="/org/gnome/shell/extensions/advanced-weather"
     dconf write "$AW_PATH/panel-position" "'center'" 2>/dev/null || true
-    dconf write "$AW_PATH/panel-position-index" "1" 2>/dev/null || true
+    dconf write "$AW_PATH/panel-position-index" "0" 2>/dev/null || true
+    dconf write "$AW_PATH/location-mode" "'manual'" 2>/dev/null || true
     dconf write "$AW_PATH/show-temperature-text" "true" 2>/dev/null || true
     dconf write "$AW_PATH/show-location-indicator" "false" 2>/dev/null || true
     dconf write "$AW_PATH/icon-size" "16" 2>/dev/null || true
