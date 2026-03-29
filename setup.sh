@@ -1081,12 +1081,14 @@ mod_topbar() {
     dconf write "$JP_PATH/clock-menu-position" "1"     # 0=center, 1=right, 2=left
     dconf write "$JP_PATH/clock-menu-position-offset" "0"
     dconf write "$JP_PATH/activities-button" "false"   # hide Activities (Logo Menu replaces it)
-    echo "  Clock moved to the right, Activities button hidden."
+    dconf write "$JP_PATH/workspace-switcher" "false"  # hide native right-side workspace thumbnails (extension handles left side)
+    echo "  Clock moved to the right, Activities button hidden, native workspace switcher hidden."
 
-    # ── 5b. Weather position: right side, before clock ──
-    local AW_PATH="/org/gnome/shell/extensions/advanced-weather"
-    dconf write "$AW_PATH/position" "'right'" 2>/dev/null || true
-    echo "  Weather positioned on the right."
+    # ── 5b. Workspace Indicator on the left (clickable workspace buttons) ──
+    echo "  Enabling Workspace Indicator..."
+    sudo dnf install -y gnome-shell-extension-workspace-indicator 2>/dev/null || true
+    gnome-extensions enable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
+    echo "  Workspace Indicator enabled (left side, after Fedora logo)."
 
     # ── 6. Vitals on the left side ──
     local VIT_PATH="/org/gnome/shell/extensions/vitals"
@@ -1122,6 +1124,7 @@ mod_topbar() {
         "just-perfection-desktop@just-perfection"
         "user-theme@gnome-shell-extensions.gcampax.github.com"
         "burn-my-windows@schneegans.github.com"
+        "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
     )
     for ext in "${EXTS_TO_ENABLE[@]}"; do
         gnome-extensions enable "$ext" 2>/dev/null || true
@@ -1129,7 +1132,6 @@ mod_topbar() {
 
     # Disable conflicting extensions
     gnome-extensions disable "window-list@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
-    gnome-extensions disable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
 
     echo ""
     echo "  Top bar configured."
