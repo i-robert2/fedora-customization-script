@@ -935,12 +935,15 @@ mod_tiling() {
     # Ensure GNOME's native drag-to-edge tiling is on
     gsettings set org.gnome.mutter edge-tiling true
 
-    # ── 3. Tiling keybindings (TA overrides GNOME's when active) ────────
-    # NOTE: We leave GNOME's native edge-tiling and Super+Arrow bindings
-    #       intact so drag-to-edge and keyboard tiling keep working even
-    #       before the first logout/login activates Tiling Assistant.
+    # ── 3. Tiling keybindings ───────────────────────────────────────────
+    # Unbind GNOME's native Super+Up/Down maximize/restore so TA can use them
+    gsettings set org.gnome.desktop.wm.keybindings maximize "[]"
+    gsettings set org.gnome.desktop.wm.keybindings unmaximize "[]"
+    # Unbind GNOME's native Super+Left/Right tiling so TA handles it with gaps
+    gsettings set org.gnome.mutter.keybindings toggle-tiled-left "[]"
+    gsettings set org.gnome.mutter.keybindings toggle-tiled-right "[]"
 
-    # Halves (Super + Arrow) — same keys GNOME already uses; TA takes over
+    # Halves with gaps (Super + Arrow)
     dconf write "$TILE_PATH/tile-left-half"   "['<Super>Left']"
     dconf write "$TILE_PATH/tile-right-half"  "['<Super>Right']"
     dconf write "$TILE_PATH/tile-top-half"    "['<Super>Up']"
@@ -958,7 +961,7 @@ mod_tiling() {
     dconf write "$TILE_PATH/tile-maximize"  "['<Super>y']"
     dconf write "$TILE_PATH/restore-window" "['<Super>Escape']"
 
-    # No-gap tiling via GNOME native keybindings (ignores Tiling Assistant gaps)
+    # No-gap tiling (ignores Tiling Assistant gaps)
     #   Super+N = left half (no gaps)    Super+M = right half (no gaps)
     #   Super+B = true fullscreen (no gaps)
     dconf write "$TILE_PATH/tile-left-half-ignore-ta"  "['<Super>n']"
@@ -966,16 +969,7 @@ mod_tiling() {
     gsettings set org.gnome.desktop.wm.keybindings toggle-fullscreen "['<Super>b']"
 
     # Directional focus navigation between tiled windows (Super+Ctrl+Arrow)
-    gsettings set org.gnome.desktop.wm.keybindings switch-windows-backward "[]"
-    gsettings set org.gnome.desktop.wm.keybindings move-to-side-n "[]"
-    gsettings set org.gnome.desktop.wm.keybindings move-to-side-s "[]"
-    gsettings set org.gnome.desktop.wm.keybindings move-to-side-w "[]"
-    gsettings set org.gnome.desktop.wm.keybindings move-to-side-e "[]"
     dconf write "$TILE_PATH/dynamic-keybinding-behavior" "1"
-    dconf write "$TILE_PATH/tile-top-half"    "['<Super>Up', '<Super><Control>Up']"
-    dconf write "$TILE_PATH/tile-bottom-half" "['<Super>Down', '<Super><Control>Down']"
-    dconf write "$TILE_PATH/tile-left-half"   "['<Super>Left', '<Super><Control>Left']"
-    dconf write "$TILE_PATH/tile-right-half"  "['<Super>Right', '<Super><Control>Right']"
 
     echo "  Tiling keybindings configured:"
     echo "    Halves (gaps):    Super+Left / Right / Up / Down"
