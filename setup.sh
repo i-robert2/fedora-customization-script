@@ -32,7 +32,7 @@ declare -A MODULE_DESC=(
     [wallpaper]="Solid black 4K wallpaper"
     [userpic]="Set user avatar from GitHub profile"
     [tiling]="Tiling windows, white borders, transparent top bar"
-    [topbar]="Fedora logo menu, Vitals, weather, tray, clock-right"
+    [topbar]="Fedora logo menu, Vitals, Advanced Weather, tray, clock-right"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -745,6 +745,7 @@ mod_dock() {
     dconf write "$DCONF_PATH/dash-max-icon-size" "40"
     dconf write "$DCONF_PATH/show-trash" "false"
     dconf write "$DCONF_PATH/show-mounts" "false"
+    dconf write "$DCONF_PATH/show-show-apps-button" "false"
 
     # In a VM the cursor escapes the screen edge, so cursor-pressure autohide
     # doesn't work. Use intellihide (window-aware) in VMs instead.
@@ -756,7 +757,7 @@ mod_dock() {
         echo "  Bare metal — using cursor-pressure autohide."
     fi
 
-    echo "  Dock configured: bottom, auto-hide."
+    echo "  Dock configured: bottom, auto-hide, no Show Apps button."
 }
 
 # ── Module: windowfx ──────────────────────────────────────────────────────
@@ -990,7 +991,8 @@ GTK3CSS
 mod_topbar() {
     echo "[topbar] Configuring top bar (Fedora logo, Vitals, weather, tray, clock right)..."
 
-    # Helper: install a GNOME extension by UUID from extensions.gnome.org
+    # Helper: install a GNOME extension from extensions.gnome.org by UUID.
+    # Prints a warning if the install fails (instead of silently swallowing).
     _install_ego_ext() {
         local UUID="$1"
         local GNOME_VER
@@ -1006,16 +1008,47 @@ mod_topbar() {
             curl -fsSL -o "$TMP_ZIP" "https://extensions.gnome.org${DL_URL}" 2>/dev/null
             if [ -s "$TMP_ZIP" ]; then
                 gnome-extensions install --force "$TMP_ZIP"
-                echo "    OK: $UUID"
+                rm -f "$TMP_ZIP"
+                echo "    OK (EGO): $UUID"
+                return 0
             fi
             rm -f "$TMP_ZIP"
         fi
-        gnome-extensions enable "$UUID" 2>/dev/null || true
+        echo "    WARNING: EGO install failed for $UUID (GNOME $GNOME_VER)"
+        return 1
+    }
+
+    # Helper: install extension — try dnf package first, then EGO fallback.
+    _install_ext() {
+        local DNF_PKG="$1"
+        local UUID="$2"
+
+        if gnome-extensions list 2>/dev/null | grep -q "$UUID"; then
+            echo "  $UUID already installed."
+            gnome-extensions enable "$UUID" 2>/dev/null || true
+            return 0
+        fi
+
+        if [[ -n "$DNF_PKG" ]]; then
+            sudo dnf install -y "$DNF_PKG" 2>/dev/null && {
+                echo "    OK (dnf): $DNF_PKG"
+                gnome-extensions enable "$UUID" 2>/dev/null || true
+                return 0
+            }
+        fi
+
+        _install_ego_ext "$UUID" && {
+            gnome-extensions enable "$UUID" 2>/dev/null || true
+            return 0
+        }
+
+        echo "  WARNING: Could not install $UUID. Install manually from Extension Manager."
+        return 1
     }
 
     # ── 1. Fedora logo menu (replaces Activities with distro logo + dropdown) ──
     echo "  Installing Logo Menu..."
-    _install_ego_ext "logomenu@aryan_k"
+    _install_ext "" "logomenu@aryan_k"
     local LOGO_PATH="/org/gnome/shell/extensions/Logo-menu"
     dconf write "$LOGO_PATH/menu-button-icon-image" "1"           # 1 = Fedora logo
     dconf write "$LOGO_PATH/menu-button-icon-size" "22"
@@ -1025,28 +1058,17 @@ mod_topbar() {
 
     # ── 2. Install Vitals (system monitors on top bar) ──
     echo "  Installing Vitals..."
-    _install_ego_ext "Vitals@CoreCoding.com"
+    _install_ext "gnome-shell-extension-vitals" "Vitals@CoreCoding.com"
 
-    # ── 3. Weather on the top bar ──
-    echo "  Installing OpenWeather..."
-    # Try Fedora repo first (more reliable), then EGO as fallback
-    if ! gnome-extensions list 2>/dev/null | grep -q 'openweather'; then
-        sudo dnf install -y gnome-shell-extension-openweather 2>/dev/null || true
-    fi
-    # If repo version didn't work, try EGO
-    if ! gnome-extensions list 2>/dev/null | grep -q 'openweather'; then
-        _install_ego_ext "openweatherreloaded@jenslody.de"
-    fi
-    # Enable whichever version is available
-    gnome-extensions enable "openweather-extension@jenslody.de" 2>/dev/null || true
-    gnome-extensions enable "openweatherreloaded@jenslody.de" 2>/dev/null || true
-    # Set Bucharest as location
-    dconf write /org/gnome/shell/extensions/openweather/city "'44.4268,26.1025>Bucharest>0'" 2>/dev/null || true
-    echo "  OpenWeather configured (Bucharest)."
+    # ── 3. Weather on the top bar (Advanced Weather Companion) ──
+    echo "  Installing Advanced Weather Companion..."
+    _install_ext "" "advanced-weather@sanjai.com"
+    gnome-extensions enable "advanced-weather@sanjai.com" 2>/dev/null || true
+    echo "  Advanced Weather Companion installed."
 
     # ── 4. AppIndicator + background apps tray ──
     echo "  Installing AppIndicator (tray icons)..."
-    _install_ego_ext "appindicatorsupport@rgcjonas.gmail.com"
+    _install_ext "gnome-shell-extension-appindicator" "appindicatorsupport@rgcjonas.gmail.com"
     local AI_PATH="/org/gnome/shell/extensions/appindicator"
     dconf write "$AI_PATH/tray-pos" "'right'" 2>/dev/null || true
     echo "  AppIndicator configured (right side)."
@@ -1090,6 +1112,7 @@ mod_topbar() {
         "logomenu@aryan_k"
         "appindicatorsupport@rgcjonas.gmail.com"
         "Vitals@CoreCoding.com"
+        "advanced-weather@sanjai.com"
         "just-perfection-desktop@just-perfection"
         "user-theme@gnome-shell-extensions.gcampax.github.com"
         "burn-my-windows@schneegans.github.com"
