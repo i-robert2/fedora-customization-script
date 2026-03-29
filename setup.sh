@@ -986,7 +986,7 @@ mod_tiling() {
     echo "    Focus navigation: Super+Ctrl+Arrow (move focus between tiled windows)"
 
     # ── 2. Ensure min/max/close buttons + dark theme ──
-    gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
+    gsettings set org.gnome.desktop.wm.preferences button-layout ':minimize,maximize,close'
     gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
     gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
     echo "  Window buttons + dark theme configured."
