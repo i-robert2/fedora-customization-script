@@ -1074,25 +1074,25 @@ mod_topbar() {
     dconf write "$AI_PATH/tray-pos" "'right'" 2>/dev/null || true
     echo "  AppIndicator configured (right side)."
 
-    # ── 5. Move clock to the right via Just Perfection ──
+    # ── 5. Clock in center via Just Perfection ──
     local JP_ID="just-perfection-desktop@just-perfection"
     gnome-extensions enable "$JP_ID" 2>/dev/null || true
     local JP_PATH="/org/gnome/shell/extensions/just-perfection"
-    dconf write "$JP_PATH/clock-menu-position" "1"     # 0=center, 1=right, 2=left
+    dconf write "$JP_PATH/clock-menu-position" "0"     # 0=center, 1=right, 2=left
     dconf write "$JP_PATH/clock-menu-position-offset" "0"
     dconf write "$JP_PATH/activities-button" "false"   # hide Activities (Logo Menu replaces it)
     dconf write "$JP_PATH/workspace-switcher" "false"  # hide native right-side workspace thumbnails (extension handles left side)
-    echo "  Clock moved to the right, Activities button hidden, native workspace switcher hidden."
+    echo "  Clock centered, Activities button hidden, native workspace switcher hidden."
 
-    # ── 5b. Weather position: right side, index 1 (before workspace thumbnails) ──
+    # ── 5b. Weather in center, to the left of the clock ──
     local AW_PATH="/org/gnome/shell/extensions/advanced-weather"
-    dconf write "$AW_PATH/panel-position" "'right'" 2>/dev/null || true
+    dconf write "$AW_PATH/panel-position" "'center'" 2>/dev/null || true
     dconf write "$AW_PATH/panel-position-index" "1" 2>/dev/null || true
     dconf write "$AW_PATH/show-temperature-text" "true" 2>/dev/null || true
     dconf write "$AW_PATH/show-location-indicator" "false" 2>/dev/null || true
     dconf write "$AW_PATH/icon-size" "16" 2>/dev/null || true
     dconf write "$AW_PATH/text-size" "13" 2>/dev/null || true
-    echo "  Weather positioned: right side, index 1."
+    echo "  Weather positioned: center, left of clock."
 
     # ── 6. Vitals on the left side ──
     local VIT_PATH="/org/gnome/shell/extensions/vitals"
