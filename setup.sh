@@ -1081,7 +1081,8 @@ mod_topbar() {
     dconf write "$JP_PATH/clock-menu-position" "1"     # 0=center, 1=right, 2=left
     dconf write "$JP_PATH/clock-menu-position-offset" "0"
     dconf write "$JP_PATH/activities-button" "false"   # hide Activities (Logo Menu replaces it)
-    echo "  Clock moved to the right, Activities button hidden."
+    dconf write "$JP_PATH/workspace-switcher" "false"  # hide native right-side workspace thumbnails (extension handles left side)
+    echo "  Clock moved to the right, Activities button hidden, native workspace switcher hidden."
 
     # ── 5b. Workspace Indicator on the left (clickable workspace buttons) ──
     echo "  Enabling Workspace Indicator..."
