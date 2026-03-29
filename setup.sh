@@ -922,19 +922,18 @@ mod_tiling() {
     dconf write "$TILE_PATH/enable-tiling-popup" "true"
     echo "  Symmetric ${GAP}px gaps configured (windows never touch edges)."
 
-    # ── 3. Reclaim Super+Up/Down from GNOME maximize/unmaximize ──────────
-    gsettings set org.gnome.desktop.wm.keybindings maximize "['<Super>f']"
-    gsettings set org.gnome.desktop.wm.keybindings unmaximize "['<Alt>F5']"
-    gsettings set org.gnome.mutter.keybindings toggle-tiled-left "[]"
-    gsettings set org.gnome.mutter.keybindings toggle-tiled-right "[]"
+    # ── 3. Tiling keybindings (TA overrides GNOME's when active) ────────
+    # NOTE: We leave GNOME's native edge-tiling and Super+Arrow bindings
+    #       intact so drag-to-edge and keyboard tiling keep working even
+    #       before the first logout/login activates Tiling Assistant.
 
-    # ── 4. Half tiling (Super + Arrow) ───────────────────────────────────
+    # Halves (Super + Arrow) — same keys GNOME already uses; TA takes over
     dconf write "$TILE_PATH/tile-left-half"   "['<Super>Left']"
     dconf write "$TILE_PATH/tile-right-half"  "['<Super>Right']"
     dconf write "$TILE_PATH/tile-top-half"    "['<Super>Up']"
     dconf write "$TILE_PATH/tile-bottom-half" "['<Super>Down']"
 
-    # ── 5. Quarter tiling (Super + U/I/J/K — laid out like a 2×2 grid) ──
+    # Quarter tiling (Super + U/I/J/K — laid out like a 2×2 grid)
     #         U = top-left      I = top-right
     #         J = bottom-left   K = bottom-right
     dconf write "$TILE_PATH/tile-topleft-quarter"     "['<Super>u']"
@@ -942,7 +941,7 @@ mod_tiling() {
     dconf write "$TILE_PATH/tile-bottomleft-quarter"  "['<Super>j']"
     dconf write "$TILE_PATH/tile-bottomright-quarter" "['<Super>k']"
 
-    # ── 6. Maximize / restore (Super+Up is now top-half) ─────────────────
+    # Maximize (with gaps) / restore
     dconf write "$TILE_PATH/tile-maximize"  "['<Super>f']"
     dconf write "$TILE_PATH/restore-window" "['<Super>Escape']"
 
