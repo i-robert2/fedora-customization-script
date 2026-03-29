@@ -32,7 +32,7 @@ declare -A MODULE_DESC=(
     [wallpaper]="Solid black 4K wallpaper"
     [userpic]="Set user avatar from GitHub profile"
     [tiling]="Tiling windows, white borders, transparent top bar"
-    [topbar]="System monitors, weather, workspaces on top bar"
+    [topbar]="System monitors, weather, clock-right via Just Perfection"
     [appgrid]="Organize app grid into category folders"
 )
 
@@ -988,7 +988,7 @@ GTK3CSS
 
 # ── Module: topbar ────────────────────────────────────────────────────────
 mod_topbar() {
-    echo "[topbar] Configuring top bar with Dash to Panel..."
+    echo "[topbar] Configuring top bar (clock right, Vitals, weather)..."
 
     # Helper: install a GNOME extension by UUID from extensions.gnome.org
     _install_ego_ext() {
@@ -1013,55 +1013,31 @@ mod_topbar() {
         gnome-extensions enable "$UUID" 2>/dev/null || true
     }
 
-    # ── 1. Install Dash to Panel (replaces top bar + dock into one panel) ──
-    echo "  Installing Dash to Panel..."
-    _install_ego_ext "dash-to-panel@jderose9.github.com"
-
-    # Disable Dash to Dock (Dash to Panel replaces it)
-    gnome-extensions disable "dash-to-dock@micxgx.gmail.com" 2>/dev/null || true
-    echo "  Dash to Dock disabled (Dash to Panel handles everything)."
-
-    # ── 2. Install supporting extensions ──
+    # ── 1. Install Vitals (system monitors on top bar) ──
     echo "  Installing Vitals..."
     _install_ego_ext "Vitals@CoreCoding.com"
+
+    # ── 2. Install AppIndicator (tray icons) ──
     echo "  Installing AppIndicator..."
     _install_ego_ext "appindicatorsupport@rgcjonas.gmail.com"
-    echo "  Installing OpenWeather Refined..."
-    _install_ego_ext "openweather-extension@penguin-teal.github.io"
 
-    # ── 3. Configure Dash to Panel layout ──
-    local DTP="/org/gnome/shell/extensions/dash-to-panel"
+    # ── 3. Weather via GNOME Weather (integrates into clock calendar dropdown) ──
+    if command -v gnome-weather &>/dev/null; then
+        echo "  GNOME Weather already installed, skipping."
+    else
+        sudo dnf install -y gnome-weather
+        echo "  GNOME Weather installed (shows weather in clock calendar dropdown)."
+    fi
 
-    # Panel on top, height 32px
-    dconf write "$DTP/panel-positions" "'{\"0\":\"TOP\"}'" 2>/dev/null || true
-    dconf write "$DTP/panel-sizes" "'{\"0\":32}'" 2>/dev/null || true
+    # ── 4. Move clock to the right via Just Perfection ──
+    local JP_ID="just-perfection-desktop@just-perfection"
+    gnome-extensions enable "$JP_ID" 2>/dev/null || true
+    local JP_PATH="/org/gnome/shell/extensions/just-perfection"
+    dconf write "$JP_PATH/clock-menu-position" "1"     # 0=center, 1=right, 2=left
+    dconf write "$JP_PATH/clock-menu-position-offset" "0"
+    echo "  Clock moved to the right side of the top bar."
 
-    # Semi-transparent panel background
-    dconf write "$DTP/trans-use-custom-bg" "true" 2>/dev/null || true
-    dconf write "$DTP/trans-bg-color" "'#282828'" 2>/dev/null || true
-    dconf write "$DTP/trans-use-custom-opacity" "true" 2>/dev/null || true
-    dconf write "$DTP/trans-panel-opacity" "0.7" 2>/dev/null || true
-    dconf write "$DTP/trans-use-dynamic-opacity" "false" 2>/dev/null || true
-
-    # LEFT: show Activities button (Fedora logo)
-    dconf write "$DTP/show-activities-button" "true" 2>/dev/null || true
-
-    # Show app icons in panel (running apps as small icons, not wide bars)
-    dconf write "$DTP/dot-style-focused" "'DOTS'" 2>/dev/null || true
-    dconf write "$DTP/dot-style-unfocused" "'DOTS'" 2>/dev/null || true
-
-    # Clock on the right edge
-    dconf write "$DTP/clock-position" "'RIGHT'" 2>/dev/null || true
-
-    # Show window preview on hover
-    dconf write "$DTP/show-window-previews" "true" 2>/dev/null || true
-
-    # Don't group windows
-    dconf write "$DTP/group-apps" "true" 2>/dev/null || true
-
-    echo "  Dash to Panel configured: top, transparent, clock right."
-
-    # ── 4. Vitals on the right side ──
+    # ── 5. Vitals on the left side ──
     local VIT_PATH="/org/gnome/shell/extensions/vitals"
     dconf write "$VIT_PATH/show-cpu" "true" 2>/dev/null || true
     dconf write "$VIT_PATH/show-memory" "true" 2>/dev/null || true
@@ -1072,12 +1048,8 @@ mod_topbar() {
     dconf write "$VIT_PATH/show-fan" "false" 2>/dev/null || true
     dconf write "$VIT_PATH/show-voltage" "false" 2>/dev/null || true
     dconf write "$VIT_PATH/show-battery" "false" 2>/dev/null || true
-    dconf write "$VIT_PATH/position-in-panel" "2" 2>/dev/null || true
-    echo "  Vitals configured (right side)."
-
-    # ── 5. OpenWeather for Bucharest ──
-    dconf write /org/gnome/shell/extensions/openweather/city "'44.4268,26.1025>Bucharest>0'" 2>/dev/null || true
-    echo "  Weather: Bucharest."
+    dconf write "$VIT_PATH/position-in-panel" "0" 2>/dev/null || true
+    echo "  Vitals configured (left side)."
 
     # ── 6. GNOME settings ──
     gsettings set org.gnome.desktop.interface clock-show-date true
@@ -1087,11 +1059,12 @@ mod_topbar() {
     gsettings set org.gnome.desktop.wm.preferences num-workspaces 3
     echo "  Clock, battery %, 3 workspaces configured."
 
-    # ── 7. Enable all extensions ──
+    # ── 7. Disable Dash to Panel if previously installed (conflicts with Dash to Dock) ──
+    gnome-extensions disable "dash-to-panel@jderose9.github.com" 2>/dev/null || true
+
+    # ── 8. Enable all extensions ──
     local EXTS_TO_ENABLE=(
-        "dash-to-panel@jderose9.github.com"
         "appindicatorsupport@rgcjonas.gmail.com"
-        "openweather-extension@penguin-teal.github.io"
         "Vitals@CoreCoding.com"
         "just-perfection-desktop@just-perfection"
         "user-theme@gnome-shell-extensions.gcampax.github.com"
@@ -1102,13 +1075,12 @@ mod_topbar() {
     done
 
     # Disable conflicting extensions
-    gnome-extensions disable "dash-to-dock@micxgx.gmail.com" 2>/dev/null || true
     gnome-extensions disable "window-list@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
     gnome-extensions disable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
 
     echo ""
-    echo "  Top bar fully configured with Dash to Panel."
-    echo "  Layout: [Fedora] [1 2 3] [open apps] ... [vitals] [weather] [indicators] [clock]"
+    echo "  Top bar configured (Dash to Dock + Just Perfection)."
+    echo "  Layout: [Activities] [Vitals] ... [indicators] [clock/weather]"
     echo "  NOTE: Log out & back in to activate."
 }
 
