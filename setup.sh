@@ -1083,6 +1083,12 @@ mod_topbar() {
     dconf write "$JP_PATH/activities-button" "false"   # hide Activities (Logo Menu replaces it)
     echo "  Clock moved to the right, Activities button hidden."
 
+    # ── 5b. Workspace Indicator on the left (clickable workspace buttons) ──
+    echo "  Enabling Workspace Indicator..."
+    sudo dnf install -y gnome-shell-extension-workspace-indicator 2>/dev/null || true
+    gnome-extensions enable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
+    echo "  Workspace Indicator enabled (left side, after Fedora logo)."
+
     # ── 6. Vitals on the left side ──
     local VIT_PATH="/org/gnome/shell/extensions/vitals"
     dconf write "$VIT_PATH/show-cpu" "true" 2>/dev/null || true
@@ -1117,6 +1123,7 @@ mod_topbar() {
         "just-perfection-desktop@just-perfection"
         "user-theme@gnome-shell-extensions.gcampax.github.com"
         "burn-my-windows@schneegans.github.com"
+        "workspace-indicator@gnome-shell-extensions.gcampax.github.com"
     )
     for ext in "${EXTS_TO_ENABLE[@]}"; do
         gnome-extensions enable "$ext" 2>/dev/null || true
@@ -1124,7 +1131,6 @@ mod_topbar() {
 
     # Disable conflicting extensions
     gnome-extensions disable "window-list@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
-    gnome-extensions disable "workspace-indicator@gnome-shell-extensions.gcampax.github.com" 2>/dev/null || true
 
     echo ""
     echo "  Top bar configured."
