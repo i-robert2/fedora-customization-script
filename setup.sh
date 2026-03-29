@@ -31,7 +31,7 @@ declare -A MODULE_DESC=(
     [windowfx]="Pixelate animations for window open/close"
     [wallpaper]="Solid black 4K wallpaper"
     [userpic]="Set user avatar from GitHub profile"
-    [tiling]="Tiling: halves, quarters, 6-grid + gaps + white borders + transparent top bar"
+    [tiling]="Tiling: halves, quarters, no-gap halves/fullscreen + gaps + white borders"
     [topbar]="Fedora logo menu, Vitals, Advanced Weather, tray, clock-right"
     [appgrid]="Organize app grid into category folders"
     [apps]="Install user apps (Discord, etc.)"
@@ -958,41 +958,19 @@ mod_tiling() {
     dconf write "$TILE_PATH/tile-maximize"  "['<Super>f']"
     dconf write "$TILE_PATH/restore-window" "['<Super>Escape']"
 
+    # No-gap tiling via GNOME native keybindings (ignores Tiling Assistant gaps)
+    #   Super+N = left half (no gaps)    Super+M = right half (no gaps)
+    #   Super+B = true fullscreen (no gaps)
+    dconf write "$TILE_PATH/tile-left-half-ignore-ta"  "['<Super>n']"
+    dconf write "$TILE_PATH/tile-right-half-ignore-ta" "['<Super>m']"
+    gsettings set org.gnome.desktop.wm.keybindings toggle-fullscreen "['<Super>b']"
+
     echo "  Tiling keybindings configured:"
-    echo "    Halves:   Super+Left / Right / Up / Down"
-    echo "    Quarters: Super+U / I / J / K"
-    echo "    Maximize: Super+F  |  Restore: Super+Escape"
-
-    # ── 7. Favorite Layouts (halves H/V, 4 quarters, 6-grid) ─────────────
-    dconf write "$TILE_PATH/enable-advanced-experimental-features" "true"
-
-    local L_HH='{"_name":"Halves Horizontal","_items":[{"rect":{"x":0,"y":0,"width":1,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0,"y":0.5,"width":1,"height":0.5},"appId":null,"loopType":null}]}'
-    local L_HV='{"_name":"Halves Vertical","_items":[{"rect":{"x":0,"y":0,"width":0.5,"height":1},"appId":null,"loopType":null},{"rect":{"x":0.5,"y":0,"width":0.5,"height":1},"appId":null,"loopType":null}]}'
-    local L_Q4='{"_name":"4 Quarters","_items":[{"rect":{"x":0,"y":0,"width":0.5,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.5,"y":0,"width":0.5,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0,"y":0.5,"width":0.5,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.5,"y":0.5,"width":0.5,"height":0.5},"appId":null,"loopType":null}]}'
-    local L_G6='{"_name":"6 Grid","_items":[{"rect":{"x":0,"y":0,"width":0.3333,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.3333,"y":0,"width":0.3334,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.6667,"y":0,"width":0.3333,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0,"y":0.5,"width":0.3333,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.3333,"y":0.5,"width":0.3334,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.6667,"y":0.5,"width":0.3333,"height":0.5},"appId":null,"loopType":null}]}'
-
-    dconf write "$TILE_PATH/favorite-layouts" "['${L_HH}', '${L_HV}', '${L_Q4}', '${L_G6}']"
-
-    # Layout activation keybindings
-    dconf write "$TILE_PATH/activate-layout0" "['<Super><Shift>h']"
-    dconf write "$TILE_PATH/activate-layout1" "['<Super><Shift>v']"
-    dconf write "$TILE_PATH/activate-layout2" "['<Super><Shift>q']"
-    dconf write "$TILE_PATH/activate-layout3" "['<Super><Shift>g']"
-
-    # Tile edit mode for freeform zone drawing
-    dconf write "$TILE_PATH/tile-edit-mode" "['<Super>e']"
-
-    # Alt+drag snaps to the active favorite layout (6-Grid by default)
-    dconf write "$TILE_PATH/favorite-layout" "3"
-    dconf write "$TILE_PATH/move-favorite-layout-mod" "2"
-
-    echo "  Favorite layouts installed (Halves H/V, 4 Quarters, 6 Grid):"
-    echo "    Super+Shift+H = Halves Horizontal (top/bottom)"
-    echo "    Super+Shift+V = Halves Vertical (left/right)"
-    echo "    Super+Shift+Q = 4 Quarters"
-    echo "    Super+Shift+G = 6 Grid (3 cols × 2 rows)"
-    echo "    Super+E       = Tile edit mode (draw custom zones)"
-    echo "    Alt+Drag      = Snap window to 6-Grid zones"
+    echo "    Halves (gaps):    Super+Left / Right / Up / Down"
+    echo "    Quarters (gaps):  Super+U / I / J / K"
+    echo "    Maximize (gaps):  Super+F  |  Restore: Super+Escape"
+    echo "    No-gap halves:    Super+N (left) / Super+M (right)"
+    echo "    No-gap fullscreen: Super+B"
 
     # ── 2. Ensure min/max/close buttons + dark theme ──
     gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
