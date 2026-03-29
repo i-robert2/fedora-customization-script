@@ -31,7 +31,7 @@ declare -A MODULE_DESC=(
     [windowfx]="Pixelate animations for window open/close"
     [wallpaper]="Solid black 4K wallpaper"
     [userpic]="Set user avatar from GitHub profile"
-    [tiling]="Tiling windows, white borders, transparent top bar"
+    [tiling]="Tiling: halves, quarters, 6-grid + gaps + white borders + transparent top bar"
     [topbar]="Fedora logo menu, Vitals, Advanced Weather, tray, clock-right"
     [appgrid]="Organize app grid into category folders"
     [apps]="Install user apps (Discord, etc.)"
@@ -888,9 +888,9 @@ EOF
 
 # ── Module: tiling ────────────────────────────────────────────────────────
 mod_tiling() {
-    echo "[tiling] Configuring tiling windows, white borders, transparent top bar..."
+    echo "[tiling] Configuring tiling: halves, quarters, 6-grid + gaps + borders..."
 
-    # ── 1. Tiling Assistant extension (snap windows in grid with tight gaps) ──
+    # ── 1. Tiling Assistant extension ─────────────────────────────────────
     local TILE_ID="tiling-assistant@leleat-on-github"
     local TILE_ZIP
     TILE_ZIP="$(mktemp /tmp/tiling-assistant-XXXX.zip)"
@@ -909,15 +909,78 @@ mod_tiling() {
 
     gnome-extensions enable "$TILE_ID" 2>/dev/null || true
 
-    # Configure tight gaps (0px inner gap = tiles touching)
+    # ── 2. Symmetric gaps (windows float — never touch screen edges) ─────
     local TILE_PATH="/org/gnome/shell/extensions/tiling-assistant"
-    dconf write "$TILE_PATH/window-gap" "8"
-    dconf write "$TILE_PATH/single-screen-gap" "8"
-    dconf write "$TILE_PATH/screen-top-gap" "4"
-    dconf write "$TILE_PATH/screen-bottom-gap" "4"
-    dconf write "$TILE_PATH/screen-left-gap" "4"
-    dconf write "$TILE_PATH/screen-right-gap" "4"
-    echo "  Tiling gaps set to 8px."
+    local GAP=12
+    dconf write "$TILE_PATH/window-gap"         "$GAP"
+    dconf write "$TILE_PATH/single-screen-gap"  "$GAP"
+    dconf write "$TILE_PATH/screen-top-gap"     "$GAP"
+    dconf write "$TILE_PATH/screen-bottom-gap"  "$GAP"
+    dconf write "$TILE_PATH/screen-left-gap"    "$GAP"
+    dconf write "$TILE_PATH/screen-right-gap"   "$GAP"
+    dconf write "$TILE_PATH/maximize-with-gap"  "true"
+    dconf write "$TILE_PATH/enable-tiling-popup" "true"
+    echo "  Symmetric ${GAP}px gaps configured (windows never touch edges)."
+
+    # ── 3. Reclaim Super+Up/Down from GNOME maximize/unmaximize ──────────
+    gsettings set org.gnome.desktop.wm.keybindings maximize "['<Super>f']"
+    gsettings set org.gnome.desktop.wm.keybindings unmaximize "['<Alt>F5']"
+    gsettings set org.gnome.mutter.keybindings toggle-tiled-left "[]"
+    gsettings set org.gnome.mutter.keybindings toggle-tiled-right "[]"
+
+    # ── 4. Half tiling (Super + Arrow) ───────────────────────────────────
+    dconf write "$TILE_PATH/tile-left-half"   "['<Super>Left']"
+    dconf write "$TILE_PATH/tile-right-half"  "['<Super>Right']"
+    dconf write "$TILE_PATH/tile-top-half"    "['<Super>Up']"
+    dconf write "$TILE_PATH/tile-bottom-half" "['<Super>Down']"
+
+    # ── 5. Quarter tiling (Super + U/I/J/K — laid out like a 2×2 grid) ──
+    #         U = top-left      I = top-right
+    #         J = bottom-left   K = bottom-right
+    dconf write "$TILE_PATH/tile-topleft-quarter"     "['<Super>u']"
+    dconf write "$TILE_PATH/tile-topright-quarter"    "['<Super>i']"
+    dconf write "$TILE_PATH/tile-bottomleft-quarter"  "['<Super>j']"
+    dconf write "$TILE_PATH/tile-bottomright-quarter" "['<Super>k']"
+
+    # ── 6. Maximize / restore (Super+Up is now top-half) ─────────────────
+    dconf write "$TILE_PATH/tile-maximize"  "['<Super>f']"
+    dconf write "$TILE_PATH/restore-window" "['<Super>Escape']"
+
+    echo "  Tiling keybindings configured:"
+    echo "    Halves:   Super+Left / Right / Up / Down"
+    echo "    Quarters: Super+U / I / J / K"
+    echo "    Maximize: Super+F  |  Restore: Super+Escape"
+
+    # ── 7. Favorite Layouts (halves H/V, 4 quarters, 6-grid) ─────────────
+    dconf write "$TILE_PATH/enable-advanced-experimental-features" "true"
+
+    local L_HH='{"_name":"Halves Horizontal","_items":[{"rect":{"x":0,"y":0,"width":1,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0,"y":0.5,"width":1,"height":0.5},"appId":null,"loopType":null}]}'
+    local L_HV='{"_name":"Halves Vertical","_items":[{"rect":{"x":0,"y":0,"width":0.5,"height":1},"appId":null,"loopType":null},{"rect":{"x":0.5,"y":0,"width":0.5,"height":1},"appId":null,"loopType":null}]}'
+    local L_Q4='{"_name":"4 Quarters","_items":[{"rect":{"x":0,"y":0,"width":0.5,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.5,"y":0,"width":0.5,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0,"y":0.5,"width":0.5,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.5,"y":0.5,"width":0.5,"height":0.5},"appId":null,"loopType":null}]}'
+    local L_G6='{"_name":"6 Grid","_items":[{"rect":{"x":0,"y":0,"width":0.3333,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.3333,"y":0,"width":0.3334,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.6667,"y":0,"width":0.3333,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0,"y":0.5,"width":0.3333,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.3333,"y":0.5,"width":0.3334,"height":0.5},"appId":null,"loopType":null},{"rect":{"x":0.6667,"y":0.5,"width":0.3333,"height":0.5},"appId":null,"loopType":null}]}'
+
+    dconf write "$TILE_PATH/favorite-layouts" "['${L_HH}', '${L_HV}', '${L_Q4}', '${L_G6}']"
+
+    # Layout activation keybindings
+    dconf write "$TILE_PATH/activate-layout0" "['<Super><Shift>h']"
+    dconf write "$TILE_PATH/activate-layout1" "['<Super><Shift>v']"
+    dconf write "$TILE_PATH/activate-layout2" "['<Super><Shift>q']"
+    dconf write "$TILE_PATH/activate-layout3" "['<Super><Shift>g']"
+
+    # Tile edit mode for freeform zone drawing
+    dconf write "$TILE_PATH/tile-edit-mode" "['<Super>e']"
+
+    # Alt+drag snaps to the active favorite layout (6-Grid by default)
+    dconf write "$TILE_PATH/favorite-layout" "3"
+    dconf write "$TILE_PATH/move-favorite-layout-mod" "2"
+
+    echo "  Favorite layouts installed (Halves H/V, 4 Quarters, 6 Grid):"
+    echo "    Super+Shift+H = Halves Horizontal (top/bottom)"
+    echo "    Super+Shift+V = Halves Vertical (left/right)"
+    echo "    Super+Shift+Q = 4 Quarters"
+    echo "    Super+Shift+G = 6 Grid (3 cols × 2 rows)"
+    echo "    Super+E       = Tile edit mode (draw custom zones)"
+    echo "    Alt+Drag      = Snap window to 6-Grid zones"
 
     # ── 2. Ensure min/max/close buttons + dark theme ──
     gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
