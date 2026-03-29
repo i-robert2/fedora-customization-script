@@ -888,7 +888,7 @@ EOF
 
 # ── Module: tiling ────────────────────────────────────────────────────────
 mod_tiling() {
-    echo "[tiling] Configuring tiling: halves, quarters, 6-grid + gaps + borders..."
+    echo "[tiling] Configuring tiling: halves, quarters, gaps + borders..."
 
     # ── 1. Tiling Assistant extension ─────────────────────────────────────
     local TILE_ID="tiling-assistant@leleat-on-github"
@@ -983,15 +983,15 @@ mod_tiling() {
     echo "    Maximize (gaps):  Super+Y  |  Restore: Super+Escape"
     echo "    No-gap halves:    Super+N (left) / Super+M (right)"
     echo "    No-gap fullscreen: Super+B"
-    echo "    Focus navigation: Super+Ctrl+Arrow (move focus between tiled windows)"
+    echo "    Focus navigation: Super+Arrow (focuses neighbor when already tiled)"
 
-    # ── 2. Ensure min/max/close buttons + dark theme ──
+    # ── 4. Ensure min/max/close buttons + dark theme ──
     gsettings set org.gnome.desktop.wm.preferences button-layout ':minimize,maximize,close'
     gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
     gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
     echo "  Window buttons + dark theme configured."
 
-    # ── 3. Transparent top bar using Just Perfection (Fedora repos — reliable) ──
+    # ── 5. Transparent top bar using Just Perfection (Fedora repos — reliable) ──
     local JP_ID="just-perfection-desktop@just-perfection"
     if ! gnome-extensions list 2>/dev/null | grep -q "$JP_ID"; then
         sudo dnf install -y gnome-shell-extension-just-perfection 2>/dev/null || true
@@ -1002,7 +1002,7 @@ mod_tiling() {
     dconf write "$JP_PATH/panel-in-overview" "true"
     echo "  Top bar configured via Just Perfection."
 
-    # ── 4. White active window border via GNOME Shell theme override ──
+    # ── 6. White active window border via GNOME Shell theme override ──
     local THEME_DIR="$HOME/.local/share/themes/WhiteBorder/gnome-shell"
     mkdir -p "$THEME_DIR"
 
