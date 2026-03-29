@@ -892,20 +892,30 @@ mod_tiling() {
 
     # ── 1. Tiling Assistant extension ─────────────────────────────────────
     local TILE_ID="tiling-assistant@leleat-on-github"
-    local TILE_ZIP
-    TILE_ZIP="$(mktemp /tmp/tiling-assistant-XXXX.zip)"
 
-    curl -fsSL -o "$TILE_ZIP" \
-        "https://github.com/Leleat/Tiling-Assistant/releases/latest/download/tiling-assistant@leleat-on-github.zip" \
-        2>/dev/null || true
-
-    if [ -s "$TILE_ZIP" ]; then
-        gnome-extensions install --force "$TILE_ZIP"
-        echo "  Tiling Assistant installed."
+    if gnome-extensions list 2>/dev/null | grep -q "$TILE_ID"; then
+        echo "  Tiling Assistant already installed."
     else
-        echo "  WARNING: Could not download Tiling Assistant. Install from Extension Manager."
+        # Try dnf package first (most reliable on Fedora)
+        if sudo dnf install -y gnome-shell-extension-tiling-assistant 2>/dev/null; then
+            echo "  Tiling Assistant installed via dnf."
+        else
+            # Fallback: download from GitHub releases
+            local TILE_ZIP
+            TILE_ZIP="$(mktemp /tmp/tiling-assistant-XXXX.zip)"
+            curl -fsSL -o "$TILE_ZIP" \
+                "https://github.com/Leleat/Tiling-Assistant/releases/latest/download/tiling-assistant@leleat-on-github.zip" \
+                2>/dev/null || true
+            if [ -s "$TILE_ZIP" ]; then
+                gnome-extensions install --force "$TILE_ZIP"
+                echo "  Tiling Assistant installed from GitHub."
+            else
+                echo "  ERROR: Could not install Tiling Assistant."
+                echo "  Install manually: open Extension Manager → Browse → search 'Tiling Assistant' → Install"
+            fi
+            rm -f "$TILE_ZIP"
+        fi
     fi
-    rm -f "$TILE_ZIP"
 
     gnome-extensions enable "$TILE_ID" 2>/dev/null || true
 
@@ -921,6 +931,9 @@ mod_tiling() {
     dconf write "$TILE_PATH/maximize-with-gap"  "true"
     dconf write "$TILE_PATH/enable-tiling-popup" "true"
     echo "  Symmetric ${GAP}px gaps configured (windows never touch edges)."
+
+    # Ensure GNOME's native drag-to-edge tiling is on
+    gsettings set org.gnome.mutter edge-tiling true
 
     # ── 3. Tiling keybindings (TA overrides GNOME's when active) ────────
     # NOTE: We leave GNOME's native edge-tiling and Super+Arrow bindings
