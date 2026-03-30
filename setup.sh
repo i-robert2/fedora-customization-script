@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -36,7 +36,8 @@ declare -A MODULE_DESC=(
     [tiling]="Tiling: halves, quarters, no-gap halves/fullscreen + gaps + white borders"
     [topbar]="Fedora logo menu, Vitals, Advanced Weather, tray, clock-right"
     [appgrid]="Organize app grid into category folders"
-    [apps]="Install user apps (Discord, etc.)"
+    [apps]="Install user apps (Discord, KVM/QEMU + virt-manager)"
+    [gitlab]="Install GitLab CE (self-hosted, local Podman container)"
 )
 
 # ── Source all module files ───────────────────────────────────────────────
