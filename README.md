@@ -378,3 +378,80 @@ You can re-run individual modules too:
 ./setup.sh tmux      # re-run just tmux setup
 ./setup.sh prompt    # re-apply the bash prompt
 ```
+
+---
+
+## Project Structure
+
+```
+setup.sh                        # Main orchestrator — sources modules, parses args
+modules/
+  ghostty.sh                    # Install Ghostty terminal
+  font.sh                       # JetBrainsMono Nerd Font + Ghostty config
+  keybinding.sh                 # Ctrl+Shift+Enter → Ghostty
+  capslock.sh                   # Fix CapsLock sticky behavior
+  tmux.sh                       # tmux + TPM + plugins + dev layout
+  prompt.sh                     # Alien beam bash prompt
+  greeting.sh                   # UFO landing animation
+  tools.sh                      # CLI tools + Extension Manager + User Themes
+  rofi.sh                       # Rofi app launcher + Catppuccin theme
+  power.sh                      # Sleep/shutdown on inactivity
+  dock.sh                       # Dash to Dock (auto-hide, bottom)
+  windowfx.sh                   # Pixelate open/close animations
+  wallpaper.sh                  # Solid black 4K wallpaper
+  userpic.sh                    # GitHub avatar as user pic
+  tiling.sh                     # Tiling Assistant + gaps + borders
+  topbar.sh                     # Fedora logo, Vitals, weather, tray
+  appgrid.sh                    # App grid category folders
+  apps.sh                       # User apps (Discord, etc.)
+setup-runner.sh                 # One-time GitHub Actions runner setup
+.github/workflows/deploy.yml   # CI/CD pipeline
+```
+
+Each module is a standalone `.sh` file containing a single `mod_<name>()` function. The main `setup.sh` sources all modules and runs them in order (or only the ones you specify).
+
+---
+
+## CI/CD Pipeline
+
+The repository includes a GitHub Actions workflow that **automatically lints and deploys** changes to a Fedora VM when you push to `main`.
+
+### How It Works
+
+1. **Lint** — Runs `shellcheck` on `setup.sh` and all `modules/*.sh` files (on GitHub-hosted Ubuntu runner)
+2. **Deploy** — Checks out the code on your self-hosted Fedora runner and runs only the changed modules
+
+The pipeline detects which `modules/*.sh` files changed in the commit and passes only those module names to `./setup.sh`. If `setup.sh` itself changed, it runs all modules as a safety fallback.
+
+### Setting It Up on Your Own Fork
+
+1. **Fork this repository** on GitHub
+
+2. **Set up a Fedora VM** (VirtualBox, QEMU, bare metal — anything with a graphical session)
+
+3. **Register a self-hosted runner** on the VM:
+   ```bash
+   # On the Fedora VM:
+   git clone https://github.com/<your-username>/fedora-customization-script.git
+   cd fedora-customization-script
+   chmod +x setup-runner.sh
+
+   # Get your runner token from:
+   #   https://github.com/<your-username>/fedora-customization-script/settings/actions/runners/new
+   # Select "Linux" + "x64", copy the token from the config.sh line
+   ./setup-runner.sh <YOUR_RUNNER_TOKEN>
+   ```
+
+4. **Verify** the runner shows as "Idle" (green) at:
+   `https://github.com/<your-username>/fedora-customization-script/settings/actions/runners`
+
+5. **Push a change** — the pipeline runs automatically:
+   - Edit a module (e.g. `modules/tiling.sh`)
+   - `git add modules/tiling.sh && git commit -m "tweak tiling" && git push`
+   - Only the `tiling` module runs on the VM (not all 18)
+
+### Requirements
+
+- The Fedora VM must have a **graphical session** running (GNOME) — many modules use `gsettings` and `dconf`
+- The runner service starts automatically on boot (configured by `setup-runner.sh`)
+- The VM user needs **passwordless sudo** (also configured by `setup-runner.sh`)

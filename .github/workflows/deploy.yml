@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'setup.sh'
+      - 'modules/**'
       - '.github/workflows/deploy.yml'
 
 jobs:
@@ -20,8 +21,8 @@ jobs:
       - name: Install ShellCheck
         run: sudo apt-get install -y shellcheck
 
-      - name: Lint setup.sh
-        run: shellcheck --severity=error setup.sh
+      - name: Lint setup.sh and modules
+        run: shellcheck --severity=error setup.sh modules/*.sh
 
   # ── CD: Deploy to VM ──────────────────────────────────────────────────
   deploy:
@@ -32,45 +33,34 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Make setup.sh executable
-        run: chmod +x setup.sh
+      - name: Make scripts executable
+        run: chmod +x setup.sh modules/*.sh
 
       - name: Detect changed modules
         id: modules
         run: |
-          # Get the diff between this commit and its parent
-          DIFF=$(git diff HEAD~1 HEAD -- setup.sh 2>/dev/null || echo "")
-
-          if [ -z "$DIFF" ]; then
+          # If setup.sh itself changed, run all modules
+          if git diff --name-only HEAD~1 HEAD | grep -q '^setup.sh$'; then
             echo "modules=all" >> "$GITHUB_OUTPUT"
-            echo "No diff available — will run all modules."
+            echo "setup.sh changed — will run all modules."
             exit 0
           fi
 
-          # Extract module names from changed mod_*() function blocks
-          # Find which lines were added/removed, match section headers
-          CHANGED=$(echo "$DIFF" | grep -oP '(?<=^@@.*@@\s).*mod_\K[a-z]+(?=\(\))' | sort -u)
-
-          # Also check for changes in module registry / helper functions
-          if echo "$DIFF" | grep -qP '(ALL_MODULES|MODULE_DESC|run_module|main\(\))'; then
-            echo "modules=all" >> "$GITHUB_OUTPUT"
-            echo "Core structure changed — will run all modules."
-            exit 0
-          fi
-
-          if [ -z "$CHANGED" ]; then
-            # Fallback: look at the @@ hunk headers for mod_ references
-            CHANGED=$(echo "$DIFF" | grep '^@@' | grep -oP 'mod_\K[a-z]+' | sort -u)
-          fi
+          # Check which module files changed
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- modules/ \
+            | sed 's|modules/||;s|\.sh$||' \
+            | tr '\n' ' ' \
+            | sed 's/ $//')
 
           if [ -z "$CHANGED" ]; then
             echo "modules=all" >> "$GITHUB_OUTPUT"
-            echo "Could not detect specific modules — will run all."
+            echo "No module files changed — will run all (safety fallback)."
           else
-            MODS=$(echo "$CHANGED" | tr '\n' ' ' | sed 's/ $//')
-            echo "modules=$MODS" >> "$GITHUB_OUTPUT"
-            echo "Detected changed modules: $MODS"
+            echo "modules=$CHANGED" >> "$GITHUB_OUTPUT"
+            echo "Changed modules: $CHANGED"
           fi
 
       - name: Run setup.sh (changed modules only)
