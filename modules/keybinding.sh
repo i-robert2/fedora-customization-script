@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_keybinding() {
     echo "[keybinding] Configuring Ctrl+Shift+Enter to open Ghostty..."
 

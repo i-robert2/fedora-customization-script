@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_gitlab() {
     echo "[gitlab] Installing GitLab CE (self-hosted, local)..."
 

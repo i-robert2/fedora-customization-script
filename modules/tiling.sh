@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_tiling() {
     echo "[tiling] Configuring tiling: halves, quarters, gaps + borders..."
 

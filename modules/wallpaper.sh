@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_wallpaper() {
     echo "[wallpaper] Setting solid black 4K wallpaper..."
 

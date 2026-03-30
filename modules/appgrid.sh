@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_appgrid() {
     echo "[appgrid] Organizing app grid into category folders..."
 

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_prompt() {
     echo "[prompt] Customizing bash prompt with alien beam effect..."
 

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_rofi() {
     echo "[rofi] Installing and configuring rofi app launcher..."
 

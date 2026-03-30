@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_power() {
     echo "[power] Configuring sleep after 3 hours, shutdown after 4 hours of inactivity..."
 

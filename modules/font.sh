@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_font() {
     echo "[font] Installing JetBrainsMono Nerd Font..."
 

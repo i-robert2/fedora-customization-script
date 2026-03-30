@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_tools() {
     echo "[tools] Installing CLI tools..."
 

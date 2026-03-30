@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_windowfx() {
     echo "[windowfx] Configuring glitch animations for window open/close..."
 

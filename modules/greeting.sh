@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_greeting() {
     echo "[greeting] Installing UFO greeting animation..."
 

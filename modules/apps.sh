@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_apps() {
     echo "[apps] Installing user applications..."
 

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_tmux() {
     echo "[tmux] Installing and configuring tmux..."
 

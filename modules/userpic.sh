@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_userpic() {
     echo "[userpic] Setting user avatar from GitHub profile..."
 

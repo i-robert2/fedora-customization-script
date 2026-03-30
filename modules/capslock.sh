@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_capslock() {
     echo "[capslock] Fixing CapsLock sticky behavior (user session + GDM login)..."
 

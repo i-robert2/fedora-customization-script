@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_topbar() {
     echo "[topbar] Configuring top bar (Fedora logo, Vitals, weather, tray, clock right)..."
 

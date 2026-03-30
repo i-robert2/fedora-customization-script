@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_ghostty() {
     echo "[ghostty] Installing Ghostty terminal..."
 

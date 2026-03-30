@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 mod_dock() {
     echo "[dock] Installing and configuring Dash to Dock..."
 
