@@ -10,8 +10,44 @@ mod_gitlab() {
 
     # --- GitLab CE container ---
     local GITLAB_HOME="$HOME/gitlab"
-    local GITLAB_PORT="8929"
+    local GITLAB_HTTPS_PORT="8929"
     local GITLAB_SSH_PORT="2224"
+    local SSL_DIR="$GITLAB_HOME/config/ssl"
+
+    # --- Generate self-signed SSL certificate ---
+    if [[ -f "$SSL_DIR/gitlab.local.crt" ]]; then
+        echo "  SSL certificate already exists, skipping."
+    else
+        echo "  Generating self-signed SSL certificate..."
+        mkdir -p "$SSL_DIR"
+        openssl req -x509 -nodes -days 3650 \
+            -newkey rsa:2048 \
+            -keyout "$SSL_DIR/gitlab.local.key" \
+            -out "$SSL_DIR/gitlab.local.crt" \
+            -subj "/CN=gitlab.local" \
+            -addext "subjectAltName=DNS:gitlab.local,DNS:localhost,IP:127.0.0.1"
+        chmod 600 "$SSL_DIR/gitlab.local.key"
+        echo "  SSL certificate generated (valid for 10 years)."
+    fi
+
+    # --- Configure GitLab for HTTPS ---
+    local GITLAB_RB="$GITLAB_HOME/config/gitlab.rb"
+    if [[ -f "$GITLAB_RB" ]] && grep -q "external_url.*https" "$GITLAB_RB"; then
+        echo "  GitLab HTTPS already configured, skipping."
+    else
+        echo "  Configuring GitLab for HTTPS..."
+        mkdir -p "$GITLAB_HOME/config"
+        cat > "$GITLAB_RB" <<RUBY
+external_url "https://gitlab.local:${GITLAB_HTTPS_PORT}"
+letsencrypt['enable'] = false
+nginx['ssl_certificate'] = "/etc/gitlab/ssl/gitlab.local.crt"
+nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/gitlab.local.key"
+nginx['listen_port'] = 443
+nginx['listen_https'] = true
+nginx['redirect_http_to_https'] = true
+RUBY
+        echo "  GitLab HTTPS configured."
+    fi
 
     if podman container exists gitlab-ce 2>/dev/null; then
         echo "  GitLab CE container already exists, skipping."
@@ -23,7 +59,7 @@ mod_gitlab() {
         podman run -d \
             --name gitlab-ce \
             --hostname gitlab.local \
-            -p "127.0.0.1:${GITLAB_PORT}:80" \
+            -p "127.0.0.1:${GITLAB_HTTPS_PORT}:443" \
             -p "127.0.0.1:${GITLAB_SSH_PORT}:22" \
             -v "$GITLAB_HOME/config:/etc/gitlab:Z" \
             -v "$GITLAB_HOME/logs:/var/log/gitlab:Z" \
@@ -34,7 +70,7 @@ mod_gitlab() {
         echo "  GitLab CE container started."
         echo ""
         echo "  NOTE: GitLab takes a few minutes to fully initialize."
-        echo "  Access the UI at: http://localhost:${GITLAB_PORT}"
+        echo "  Access the UI at: https://localhost:${GITLAB_HTTPS_PORT}"
         echo "  SSH clone port:   ${GITLAB_SSH_PORT}"
     fi
 
@@ -61,7 +97,7 @@ ExecStartPre=-/usr/bin/podman rm gitlab-ce
 ExecStart=/usr/bin/podman run --rm \\
     --name gitlab-ce \\
     --hostname gitlab.local \\
-    -p 127.0.0.1:${GITLAB_PORT}:80 \\
+    -p 127.0.0.1:${GITLAB_HTTPS_PORT}:443 \\
     -p 127.0.0.1:${GITLAB_SSH_PORT}:22 \\
     -v ${GITLAB_HOME}/config:/etc/gitlab:Z \\
     -v ${GITLAB_HOME}/logs:/var/log/gitlab:Z \\
@@ -83,12 +119,13 @@ EOF
     echo ""
     echo "  ── GitLab CE Quick Start ──"
     echo "  1. Wait a few minutes for initialization"
-    echo "  2. Open: http://localhost:${GITLAB_PORT}"
+    echo "  2. Open: https://localhost:${GITLAB_HTTPS_PORT}"
     echo "  3. Get the initial root password:"
     echo "     podman exec gitlab-ce cat /etc/gitlab/initial_root_password"
     echo "  4. Login as 'root' with that password, then change it"
-    echo "  5. Create your first project and push code:"
-    echo "     git remote add origin http://localhost:${GITLAB_PORT}/root/my-project.git"
-    echo "     git push -u origin main"
+    echo "  5. Accept the self-signed certificate warning in your browser"
+    echo "  6. Create your first project and push code:"
+    echo "     git -c http.sslVerify=false remote add origin https://localhost:${GITLAB_HTTPS_PORT}/root/my-project.git"
+    echo "     git -c http.sslVerify=false push -u origin main"
     echo ""
 }
