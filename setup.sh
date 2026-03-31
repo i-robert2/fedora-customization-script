@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -38,6 +38,7 @@ declare -A MODULE_DESC=(
     [appgrid]="Organize app grid into category folders"
     [apps]="Install user apps (Discord, KVM/QEMU + virt-manager)"
     [gitlab]="Install GitLab CE (self-hosted, local Podman container)"
+    [cicd]="Install GitLab Runner + SSH deploy key for CI/CD pipelines"
 )
 
 # ── Source all module files ───────────────────────────────────────────────
