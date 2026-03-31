@@ -43,6 +43,18 @@ mod_continue() {
       "provider": "ollama",
       "model": "qwen2.5:14b",
       "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "DeepSeek R1 14B (reasoning)",
+      "provider": "ollama",
+      "model": "deepseek-r1:14b",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "Phi-4 14B (summarization)",
+      "provider": "ollama",
+      "model": "phi4:14b",
+      "apiBase": "http://localhost:11434"
     }
   ],
   "tabAutocompleteModel": {

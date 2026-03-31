@@ -45,6 +45,25 @@ mod_ollama() {
         echo "  qwen2.5:14b ready."
     fi
 
+    # --- Alternative models ---
+    # DeepSeek R1 distill — strong at reasoning, debugging, analysis
+    if ollama list | grep -q 'deepseek-r1:14b'; then
+        echo "  deepseek-r1:14b already pulled, skipping."
+    else
+        echo "  Pulling deepseek-r1:14b (reasoning/debugging, ~9 GB)..."
+        ollama pull deepseek-r1:14b
+        echo "  deepseek-r1:14b ready."
+    fi
+
+    # Phi-4 — strong at summarization and instruction-following
+    if ollama list | grep -q 'phi4:14b'; then
+        echo "  phi4:14b already pulled, skipping."
+    else
+        echo "  Pulling phi4:14b (summarization/instructions, ~9 GB)..."
+        ollama pull phi4:14b
+        echo "  phi4:14b ready."
+    fi
+
     # On NVIDIA: also pull the larger 32B model for text tasks
     if [[ "$has_nvidia" == true ]]; then
         if ollama list | grep -q 'qwen2.5:32b'; then

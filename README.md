@@ -55,7 +55,7 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 18 | `apps` | Discord (Flatpak) + KVM/QEMU + virt-manager |
 | 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS |
 | 20 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
-| 21 | `ollama` | Ollama + AI models (Qwen 2.5 Coder 14B, Qwen 2.5 14B/32B) |
+| 21 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
 | 22 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
 | 23 | `searxng` | SearXNG — self-hosted search engine for AI web search |
 | 24 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
@@ -608,14 +608,28 @@ Installs [Ollama](https://ollama.com/) and pulls quantized LLM models for local 
 | Enables service | `systemctl enable --now ollama` |
 | Pulls coding model | `qwen2.5-coder:14b` (~9 GB) |
 | Pulls general model | `qwen2.5:14b` (~9 GB) |
+| Pulls reasoning model | `deepseek-r1:14b` (~9 GB) |
+| Pulls summarization model | `phi4:14b` (~9 GB) |
 | Pulls large model (NVIDIA only) | `qwen2.5:32b` (~20 GB) |
 | API endpoint | `http://localhost:11434` |
+
+**Which model to use when:**
+
+| Model | Best for |
+|---|---|
+| `qwen2.5-coder:14b` | Writing code, completions, refactoring |
+| `qwen2.5:14b` | General chat, translation, content writing |
+| `deepseek-r1:14b` | Complex debugging, reasoning, step-by-step analysis |
+| `phi4:14b` | Summarizing documents, following detailed instructions |
+| `qwen2.5:32b` (NVIDIA) | Best overall quality, slower |
 
 **Usage:**
 
 ```bash
-ollama run qwen2.5-coder:14b    # chat with the coding model
-ollama run qwen2.5:14b          # chat with the general model
+ollama run qwen2.5-coder:14b    # coding
+ollama run qwen2.5:14b          # general chat
+ollama run deepseek-r1:14b      # hard reasoning / debugging
+ollama run phi4:14b             # summarization / instructions
 ollama list                     # see all downloaded models
 ollama ps                       # see currently loaded models
 ```
@@ -808,8 +822,19 @@ Installs [VSCodium](https://vscodium.com/) and the [Continue](https://continue.d
 | Installs VSCodium | Via COPR (`zeno/vscodium`) |
 | Installs Continue extension | From Open VSX Registry |
 | Writes config | `~/.config/continue/config.json` |
-| Chat model | `qwen2.5-coder:14b` (local) |
+| Chat models | Qwen 2.5 Coder 14B, Qwen 2.5 14B, DeepSeek R1 14B, Phi-4 14B |
 | Autocomplete model | `qwen2.5-coder:14b` (local) |
+
+**Switching models in Continue:**
+
+All four models are pre-configured. In the Continue chat panel (`Ctrl+L`), click the model name at the top to switch between:
+
+| Model in dropdown | When to use |
+|---|---|
+| Qwen 2.5 Coder 14B | Default — writing and editing code |
+| Qwen 2.5 14B | General questions about your project |
+| DeepSeek R1 14B | Complex bugs, reasoning through logic |
+| Phi-4 14B | Summarizing code, explaining large files |
 
 **Keyboard shortcuts:**
 
