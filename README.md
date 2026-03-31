@@ -858,6 +858,33 @@ ollama pull codellama:13b   # pull a new model
 | `~/.config/systemd/user/open-webui.service` | Open WebUI auto-start service |
 | `~/.config/systemd/user/searxng.service` | SearXNG auto-start service |
 
+### Browser AI Alternative — DeepSeek (Free, Unlimited)
+
+The local AI setup covers most daily needs, but for complex coding problems where a larger model helps, [DeepSeek](https://chat.deepseek.com/) is the best free browser-based option — unlimited messages with no daily caps.
+
+> **Privacy note:** All cloud AI services (ChatGPT, Copilot, Gemini, DeepSeek) send your data to external servers. If privacy is a concern, use the local Ollama setup for sensitive code and reserve browser AI for general questions, learning, and personal projects.
+
+**How to use it:**
+
+1. Go to [chat.deepseek.com](https://chat.deepseek.com/) and create a free account
+2. Select **DeepThink (R1)** mode for complex reasoning, debugging, and algorithm problems
+3. Use the default mode for quick code questions and general chat
+
+**Tips for coding with DeepSeek:**
+
+- Paste your code and error messages directly — it handles large snippets well
+- Use **DeepThink** for hard problems — it shows step-by-step reasoning before answering
+- Ask it to explain *why* something works, not just *what* to write — you'll learn more
+- For multi-file context, describe the project structure before pasting code
+
+**Recommended workflow:**
+
+| Problem complexity | Tool |
+|---|---|
+| Quick autocomplete / inline edits | VSCodium + Continue + Ollama (local) |
+| Moderate questions about your code | Open WebUI + Ollama (local) |
+| Complex bugs, architecture, algorithms | DeepSeek in browser (free, unlimited) |
+
 </details>
 
 ---
