@@ -38,12 +38,10 @@ mod_gitlab() {
         echo "  Configuring GitLab for HTTPS..."
         mkdir -p "$GITLAB_HOME/config"
         cat > "$GITLAB_RB" <<RUBY
-external_url "https://gitlab.local:${GITLAB_HTTPS_PORT}"
+external_url "https://gitlab.local"
 letsencrypt['enable'] = false
 nginx['ssl_certificate'] = "/etc/gitlab/ssl/gitlab.local.crt"
 nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/gitlab.local.key"
-nginx['listen_port'] = 443
-nginx['listen_https'] = true
 nginx['redirect_http_to_https'] = true
 RUBY
         echo "  GitLab HTTPS configured."
