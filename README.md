@@ -55,10 +55,17 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 18 | `apps` | Discord (Flatpak) + KVM/QEMU + virt-manager |
 | 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS |
 | 20 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
+| 21 | `ollama` | Ollama + AI models (Qwen 2.5 Coder 14B, Qwen 2.5 14B/32B) |
+| 22 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
+| 23 | `searxng` | SearXNG — self-hosted search engine for AI web search |
+| 24 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
+| 25 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
+| 26 | `continue` | VSCodium + Continue AI coding extension |
 
 ---
 
-## Terminal Setup
+<details>
+<summary><strong>🖥️ Terminal Setup</strong> — Ghostty, prompt, UFO greeting</summary>
 
 ### Ghostty + Font
 
@@ -96,9 +103,10 @@ A custom PS1 prompt with a brief green teleport beam animation (`░▒▓█▓
 
 On every new terminal, a pixel-art UFO slides across the screen and lands with a `👽 howdy there!` message. Built with Unicode block characters and ANSI color codes.
 
----
+</details>
 
-## tmux
+<details>
+<summary><strong>📟 tmux</strong> — Catppuccin status bar, Vim-style navigation, session management</summary>
 
 <!-- Add a screenshot of your tmux setup here -->
 <!-- ![tmux](screenshots/tmux.png) -->
@@ -204,9 +212,10 @@ A `~/.bashrc` hook auto-attaches to your last tmux session when opening Ghostty.
 | Mouse | Full support (click, drag, scroll) |
 | Window numbering | Starts at 1 |
 
----
+</details>
 
-## CLI Tools
+<details>
+<summary><strong>🔧 CLI Tools</strong> — bat, btop, eza, fd, fzf, ripgrep, and more</summary>
 
 Installed via `dnf`:
 
@@ -230,9 +239,10 @@ Also installs:
 - **Extension Manager** (Flatpak) — browse/install GNOME extensions
 - **User Themes** extension — enables custom shell themes
 
----
+</details>
 
-## Desktop Appearance
+<details>
+<summary><strong>🎨 Desktop Appearance</strong> — Theme, wallpaper, top bar, dock, tiling, app grid, rofi</summary>
 
 ### Theme & Wallpaper
 
@@ -326,9 +336,10 @@ Powered by Tiling Assistant with **12px symmetric gaps** on all sides.
 | Font | JetBrainsMono Nerd Font 12 |
 | Modes | drun, run, window |
 
----
+</details>
 
-## Keyboard Fix — CapsLock
+<details>
+<summary><strong>⌨️ Keyboard Fix</strong> — CapsLock</summary>
 
 Fixes the sticky/delayed CapsLock behavior system-wide:
 
@@ -342,9 +353,10 @@ Fixes the sticky/delayed CapsLock behavior system-wide:
 
 Applied to both user session (gsettings) and GDM login screen (dconf).
 
----
+</details>
 
-## Power Management
+<details>
+<summary><strong>🔋 Power Management</strong> — Sleep & auto-shutdown</summary>
 
 | Event | Action |
 |---|---|
@@ -354,9 +366,10 @@ Applied to both user session (gsettings) and GDM login screen (dconf).
 
 Auto-shutdown uses a custom systemd timer that checks every 15 minutes via `loginctl`.
 
----
+</details>
 
-## Apps & Virtualization
+<details>
+<summary><strong>📦 Apps & Virtualization</strong> — Discord, KVM/QEMU, GitLab CE</summary>
 
 ### Discord
 
@@ -409,9 +422,10 @@ systemctl --user restart gitlab-ce  # restart
 podman logs -f gitlab-ce            # live logs
 ```
 
----
+</details>
 
-## CI/CD — Automatic Deployment
+<details>
+<summary><strong>🔄 CI/CD</strong> — GitHub Actions + GitLab CI/CD deploy to KVM/QEMU VMs</summary>
 
 ### GitHub Actions (this repo)
 
@@ -540,9 +554,316 @@ The sample pipeline at [templates/gitlab-ci-deploy.yml](templates/gitlab-ci-depl
 - A **deploy** stage that syncs files to the VM and runs post-deploy commands
 - Commented examples for restarting systemd services or Podman containers
 
+</details>
+
 ---
 
-## Adding Screenshots
+<details>
+<summary><strong>🤖 Local AI Setup</strong> — Ollama, Open WebUI, SearXNG, ComfyUI, TTS, Continue</summary>
+
+Six modules that set up a fully offline AI stack for coding, text, image/video generation, voice synthesis, and web search. All modules auto-detect hardware — on NVIDIA systems they install CUDA-accelerated versions and pull larger models.
+
+### Hardware Support
+
+| Component | AMD Laptop (CPU only) | Intel/NVIDIA PC |
+|---|---|---|
+| LLM inference | CPU (~10-15 tok/s @ 14B) | CUDA GPU offload (~30-40 tok/s @ 14B) |
+| Image generation | CPU, SD 1.5 (~90 sec/image) | CUDA, SDXL (~10 sec/image) |
+| Video generation | CPU, AnimateDiff (~20 min/clip) | CUDA, AnimateDiff (~2 min/clip) |
+| TTS | Piper + Kokoro (real-time) | Piper + Kokoro + F5-TTS (real-time) |
+
+### Prerequisites
+
+On **NVIDIA systems**, install the proprietary drivers before running the AI modules so that GPU detection works:
+
+```bash
+sudo dnf install -y akmod-nvidia
+sudo reboot
+```
+
+On **AMD systems**, no extra drivers are needed — Fedora includes full support out of the box.
+
+### Quick Start — Install All AI Modules
+
+```bash
+./setup.sh ollama openwebui searxng comfyui tts continue
+```
+
+Or run them individually as described below.
+
+---
+
+<details>
+<summary><strong>21. Ollama — LLM Runtime + Models</strong></summary>
+
+```bash
+./setup.sh ollama
+```
+
+Installs [Ollama](https://ollama.com/) and pulls quantized LLM models for local inference.
+
+| What it does | Details |
+|---|---|
+| Installs Ollama | Via official install script |
+| Enables service | `systemctl enable --now ollama` |
+| Pulls coding model | `qwen2.5-coder:14b` (~9 GB) |
+| Pulls general model | `qwen2.5:14b` (~9 GB) |
+| Pulls large model (NVIDIA only) | `qwen2.5:32b` (~20 GB) |
+| API endpoint | `http://localhost:11434` |
+
+**Usage:**
+
+```bash
+ollama run qwen2.5-coder:14b    # chat with the coding model
+ollama run qwen2.5:14b          # chat with the general model
+ollama list                     # see all downloaded models
+ollama ps                       # see currently loaded models
+```
+
+**Management:**
+
+```bash
+systemctl status ollama         # check service status
+systemctl restart ollama        # restart
+ollama pull <model>             # download additional models
+ollama rm <model>               # delete a model
+```
+
+</details>
+
+<details>
+<summary><strong>22. Open WebUI — Chat Interface</strong></summary>
+
+```bash
+./setup.sh openwebui
+```
+
+Runs [Open WebUI](https://github.com/open-webui/open-webui) in a Podman container — a ChatGPT-like web interface for your local Ollama models.
+
+| What it does | Details |
+|---|---|
+| Runs Podman container | `open-webui` on port 3000 |
+| Connects to Ollama | Via `host.containers.internal:11434` |
+| Systemd user service | Auto-starts on login |
+| Data volume | `open-webui` (Podman volume) |
+| URL | `http://localhost:3000` |
+
+**First-time setup:**
+
+1. Open `http://localhost:3000` in your browser
+2. Create an admin account (first user becomes admin)
+3. Select a model from the dropdown and start chatting
+
+**Features:**
+- Upload documents for RAG (summarize/query PDFs, text files)
+- Multiple conversation threads with history
+- Model switching mid-conversation
+- Web search integration (see SearXNG below)
+
+**Management:**
+
+```bash
+systemctl --user status open-webui    # check status
+systemctl --user restart open-webui   # restart
+podman logs -f open-webui             # live logs
+```
+
+</details>
+
+<details>
+<summary><strong>23. SearXNG — AI Web Search</strong></summary>
+
+```bash
+./setup.sh searxng
+```
+
+Runs [SearXNG](https://github.com/searxng/searxng) in a Podman container — a privacy-respecting meta search engine that aggregates results from Google, Bing, DuckDuckGo, and more.
+
+| What it does | Details |
+|---|---|
+| Runs Podman container | `searxng` on port 8888 |
+| Systemd user service | Auto-starts on login |
+| Data volume | `searxng-data` (Podman volume) |
+| URL | `http://localhost:8888` |
+
+**Connecting to Open WebUI:**
+
+1. Open `http://localhost:3000` (Open WebUI)
+2. Go to **Admin → Settings → Web Search**
+3. Enable web search
+4. Select **SearXNG** as the provider
+5. Set the URL to `http://localhost:8888`
+
+Now when you ask questions in Open WebUI, the AI can search the internet and synthesize results — like a local Perplexity.
+
+**Management:**
+
+```bash
+systemctl --user status searxng       # check status
+systemctl --user restart searxng      # restart
+podman logs -f searxng                # live logs
+```
+
+</details>
+
+<details>
+<summary><strong>24. ComfyUI — Image & Video Generation</strong></summary>
+
+```bash
+./setup.sh comfyui
+```
+
+Clones [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with a Python virtual environment, custom nodes for video generation, and pre-downloaded model checkpoints.
+
+| What it does | Details |
+|---|---|
+| Clones ComfyUI | To `~/comfyui` |
+| Creates Python venv | With PyTorch (CUDA or CPU) |
+| Installs ComfyUI Manager | Browse/install nodes from the UI |
+| Installs AnimateDiff Evolved | For video generation |
+| Downloads SD 1.5 | ~4 GB (both systems) |
+| Downloads SDXL (NVIDIA only) | ~7 GB (higher quality) |
+| Creates launcher script | `~/comfyui/start.sh` |
+| URL | `http://localhost:8188` |
+
+**Usage:**
+
+```bash
+~/comfyui/start.sh              # start ComfyUI
+# Then open http://localhost:8188 in your browser
+```
+
+**Image generation:**
+1. Open ComfyUI in the browser
+2. The default workflow generates images with SD 1.5
+3. Type a prompt, click "Queue Prompt"
+4. On NVIDIA, switch to the SDXL checkpoint for higher quality
+
+**Video generation (AnimateDiff):**
+1. In ComfyUI, load an AnimateDiff workflow (available in ComfyUI Manager examples)
+2. AnimateDiff extends SD 1.5/SDXL to produce short animated clips (2-3 seconds)
+3. Expect ~2 min per clip on NVIDIA, ~15-20 min on CPU
+
+**Installing additional models:**
+Use ComfyUI Manager (the puzzle piece icon in the UI) to browse and install additional checkpoints, LoRAs, and custom nodes.
+
+</details>
+
+<details>
+<summary><strong>25. TTS — Text-to-Speech</strong></summary>
+
+```bash
+./setup.sh tts
+```
+
+Installs multiple TTS engines for local voice synthesis.
+
+| Engine | Speed | Quality | Notes |
+|---|---|---|---|
+| **Piper** | Real-time | Good | Lightweight, many voices/languages |
+| **Kokoro** | Real-time | Very good | Natural-sounding, expressive |
+| **F5-TTS** (NVIDIA only) | Real-time | Excellent | Voice cloning from a 15-sec sample |
+
+**Usage — Piper:**
+
+```bash
+echo 'Hello world' | piper \
+  --model ~/.local/share/piper-models/en_US-lessac-medium.onnx \
+  --output_file speech.wav
+
+# Play it
+aplay speech.wav
+```
+
+**Usage — Kokoro:**
+
+```python
+import kokoro
+# See kokoro documentation for API usage
+```
+
+**Usage — F5-TTS (NVIDIA only, voice cloning):**
+
+```bash
+# Provide a 15-second voice sample and text to clone
+f5-tts --ref-audio sample.wav --ref-text "Hello" --gen-text "Your text here" --output out.wav
+```
+
+**Integrating with Open WebUI:**
+Open WebUI supports TTS — go to **Settings → Audio** to configure a local TTS engine for the AI to read responses aloud.
+
+</details>
+
+<details>
+<summary><strong>26. Continue — AI Coding Assistant</strong></summary>
+
+```bash
+./setup.sh continue
+```
+
+Installs [VSCodium](https://vscodium.com/) and the [Continue](https://continue.dev/) extension, pre-configured to use your local Ollama models.
+
+| What it does | Details |
+|---|---|
+| Installs VSCodium | Via COPR (`zeno/vscodium`) |
+| Installs Continue extension | From Open VSX Registry |
+| Writes config | `~/.config/continue/config.json` |
+| Chat model | `qwen2.5-coder:14b` (local) |
+| Autocomplete model | `qwen2.5-coder:14b` (local) |
+
+**Keyboard shortcuts:**
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+L` | Open Continue chat panel |
+| `Ctrl+I` | Inline edit (select code first) |
+| `Tab` | Accept autocomplete suggestion |
+
+**First-time setup:**
+
+1. Make sure Ollama is running (`systemctl status ollama`)
+2. Open VSCodium (`codium`)
+3. Continue will detect the local config and connect to Ollama automatically
+4. Press `Ctrl+L` to start chatting about your code
+
+**Changing models:**
+
+Edit `~/.config/continue/config.json` to add or switch models. Any model available in Ollama can be used:
+
+```bash
+ollama pull codellama:13b   # pull a new model
+# Then add it to config.json
+```
+
+</details>
+
+### AI Modules — Ports
+
+| Service | Port | URL |
+|---|---|---|
+| Ollama API | 11434 | `http://localhost:11434` |
+| Open WebUI | 3000 | `http://localhost:3000` |
+| SearXNG | 8888 | `http://localhost:8888` |
+| ComfyUI | 8188 | `http://localhost:8188` |
+
+### AI Modules — File Locations
+
+| File / Directory | Purpose |
+|---|---|
+| `~/comfyui/` | ComfyUI installation + models |
+| `~/comfyui/start.sh` | ComfyUI launcher script |
+| `~/comfyui/models/checkpoints/` | SD 1.5, SDXL model files |
+| `~/.config/continue/config.json` | Continue extension config |
+| `~/.local/share/piper-models/` | Piper voice model files |
+| `~/.config/systemd/user/open-webui.service` | Open WebUI auto-start service |
+| `~/.config/systemd/user/searxng.service` | SearXNG auto-start service |
+
+</details>
+
+---
+
+<details>
+<summary><strong>📸 Adding Screenshots</strong></summary>
 
 To add your own screenshots, create a `screenshots/` directory and capture:
 
@@ -566,51 +887,16 @@ You can capture a GIF with:
 flatpak install flathub com.uploadedlobster.peek
 ```
 
+</details>
+
 ---
 
 ## License
 
 See [LICENSE](LICENSE).
 
-### 9. CLI Tools
-
-Installs a curated set of modern command-line tools in a single `dnf install`:
-
-| Tool | Package | What it does |
-|---|---|---|
-| `bat` | bat | `cat` with syntax highlighting and line numbers |
-| `eza` | eza | Modern `ls` replacement — icons, git status, `--tree` |
-| `fd` | fd-find | Fast, user-friendly `find` alternative |
-| `fzf` | fzf | Fuzzy finder for files, history, and more |
-| `htop` | htop | Interactive process viewer (replaces `top`) |
-| `jq` | jq | Command-line JSON processor |
-| `ncdu` | ncdu | Interactive disk usage analyzer |
-| `rg` | ripgrep | Blazing-fast recursive grep |
-| `duf` | duf | Disk usage overview (`df` replacement) |
-| `tldr` | tldr | Simplified, community-driven man pages |
-
-> **Tip:** `eza --tree` replaces the `tree` command and adds icons + git status when you have a Nerd Font installed.
-
-### 10. Rofi App Launcher
-
-Installs [rofi](https://github.com/davatorium/rofi) — a fast, keyboard-driven application launcher with native Wayland support (v2.0.0+).
-
-**What it configures:**
-
-| Setting | Value |
-|---|---|
-| Modi | drun (apps), run (commands), window (switcher) |
-| Font | JetBrainsMono Nerd Font 12 |
-| Theme | Catppuccin Mocha |
-| Show icons | Enabled |
-| Terminal | Ghostty |
-| Keybinding | **Super+D** → `rofi -show drun` |
-
-The Catppuccin Mocha theme is downloaded from the [catppuccin/rofi](https://github.com/catppuccin/rofi) repository and stored at `~/.local/share/rofi/themes/catppuccin-mocha.rasi`.
-
----
-
-## tmux Cheatsheet
+<details>
+<summary><strong>📋 tmux Cheatsheet</strong></summary>
 
 All commands use the prefix **`Ctrl+Space`** (press `Ctrl+Space`, release, then press the key).
 
@@ -675,9 +961,10 @@ tmux kill-session -t <name>  # Kill session
 tmux-dev [directory]         # Dev layout (3 windows)
 ```
 
----
+</details>
 
-## File Locations
+<details>
+<summary><strong>📂 File Locations</strong></summary>
 
 | File | Purpose |
 |---|---|
@@ -690,9 +977,10 @@ tmux-dev [directory]         # Dev layout (3 windows)
 | `/etc/dconf/db/gdm.d/99-capslock-fix` | GDM keyboard settings |
 | `/etc/dconf/profile/gdm` | GDM dconf profile |
 
----
+</details>
 
-## Re-running the Script
+<details>
+<summary><strong>🔁 Re-running the Script</strong></summary>
 
 The script is safe to run multiple times. Each module checks whether its changes are already applied and skips if so. The tmux config (`~/.tmux.conf`) is backed up with a timestamp before overwriting.
 
@@ -703,9 +991,10 @@ You can re-run individual modules too:
 ./setup.sh prompt    # re-apply the bash prompt
 ```
 
----
+</details>
 
-## Project Structure
+<details>
+<summary><strong>🗂️ Project Structure</strong></summary>
 
 ```
 setup.sh                        # Main orchestrator — sources modules, parses args
@@ -728,15 +1017,22 @@ modules/
   topbar.sh                     # Fedora logo, Vitals, weather, tray
   appgrid.sh                    # App grid category folders
   apps.sh                       # User apps (Discord, etc.)
+  ollama.sh                     # Ollama + AI models
+  openwebui.sh                  # Open WebUI (Podman container)
+  searxng.sh                    # SearXNG search engine (Podman container)
+  comfyui.sh                    # ComfyUI + AnimateDiff (image/video)
+  tts.sh                        # Text-to-speech (Piper, Kokoro, F5-TTS)
+  continue.sh                   # VSCodium + Continue AI extension
 setup-runner.sh                 # One-time GitHub Actions runner setup
 .github/workflows/deploy.yml   # CI/CD pipeline
 ```
 
 Each module is a standalone `.sh` file containing a single `mod_<name>()` function. The main `setup.sh` sources all modules and runs them in order (or only the ones you specify).
 
----
+</details>
 
-## CI/CD Pipeline
+<details>
+<summary><strong>⚙️ CI/CD Pipeline</strong> — GitHub Actions + self-hosted runner</summary>
 
 The repository includes a GitHub Actions workflow that **automatically lints and deploys** changes to a Fedora VM when you push to `main`.
 
@@ -779,3 +1075,5 @@ The pipeline detects which `modules/*.sh` files changed in the commit and passes
 - The Fedora VM must have a **graphical session** running (GNOME) — many modules use `gsettings` and `dconf`
 - The runner service starts automatically on boot (configured by `setup-runner.sh`)
 - The VM user needs **passwordless sudo** (also configured by `setup-runner.sh`)
+
+</details>
