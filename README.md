@@ -54,6 +54,7 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 17 | `appgrid` | Organize app grid into 5 category folders |
 | 18 | `apps` | Discord (Flatpak) + KVM/QEMU + virt-manager |
 | 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS |
+| 20 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
 
 ---
 
@@ -412,6 +413,8 @@ podman logs -f gitlab-ce            # live logs
 
 ## CI/CD — Automatic Deployment
 
+### GitHub Actions (this repo)
+
 This repo uses GitHub Actions with a **self-hosted runner** on the Fedora VM. On every push to `main`:
 
 1. **ShellCheck** lints all scripts (`--severity=error`)
@@ -422,6 +425,120 @@ push to main → ShellCheck lint → detect changed modules → run setup.sh <ch
 ```
 
 Only the modules whose files changed in the commit are re-run. If `setup.sh` itself changes, all modules run.
+
+### GitLab CI/CD — Deploy to KVM/QEMU VMs
+
+The `cicd` module sets up a complete local CI/CD pipeline for deploying code from your self-hosted GitLab to KVM/QEMU VMs.
+
+#### Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│  Fedora Host (bare metal)                        │
+│                                                  │
+│  ┌──────────┐    ┌───────────────┐               │
+│  │ GitLab   │───▶│ GitLab Runner │               │
+│  │ CE       │    │ (shell exec)  │               │
+│  └──────────┘    └───────┬───────┘               │
+│                          │ SSH                    │
+│                  ┌───────▼───────┐               │
+│                  │  KVM/QEMU VM  │               │
+│                  │  (your app)   │               │
+│                  └───────────────┘               │
+└──────────────────────────────────────────────────┘
+```
+
+#### Step 1 — Install the modules
+
+```bash
+./setup.sh gitlab cicd
+```
+
+This installs:
+- **GitLab CE** — local git server at `https://localhost:8929`
+- **GitLab Runner** — listens for pipeline jobs
+- **SSH deploy key** — at `~/.ssh/gitlab-deploy` (passwordless deploys to VMs)
+
+#### Step 2 — Log into GitLab
+
+```bash
+# Get the initial root password
+podman exec gitlab-ce cat /etc/gitlab/initial_root_password
+```
+
+Open `https://localhost:8929`, accept the self-signed certificate warning, log in as `root`, and change the password.
+
+#### Step 3 — Register the Runner
+
+1. In GitLab UI: **Admin → CI/CD → Runners → New instance runner**
+2. Copy the runner token
+3. Run:
+
+```bash
+sudo gitlab-runner register \
+  --url https://gitlab.local \
+  --token YOUR_TOKEN \
+  --executor shell \
+  --tls-ca-file ~/gitlab/config/ssl/gitlab.local.crt
+```
+
+4. Start the runner:
+
+```bash
+sudo gitlab-runner start
+```
+
+#### Step 4 — Create a KVM/QEMU VM
+
+Open `virt-manager` and create a VM (AlmaLinux 9 minimal recommended). Once it boots, note its IP:
+
+```bash
+virsh domifaddr YOUR_VM_NAME
+```
+
+#### Step 5 — Copy the deploy key to the VM
+
+```bash
+ssh-copy-id -i ~/.ssh/gitlab-deploy.pub deploy@VM_IP
+```
+
+(Replace `VM_IP` with the actual IP from step 4. Create a `deploy` user on the VM first if needed.)
+
+#### Step 6 — Add the pipeline to your project
+
+Copy the template from this repo into your GitLab project:
+
+```bash
+cp templates/gitlab-ci-deploy.yml /path/to/your-project/.gitlab-ci.yml
+```
+
+Edit `.gitlab-ci.yml` and set:
+- `VM_IP` — your VM's IP address
+- `VM_USER` — the user on the VM (default: `deploy`)
+- `DEPLOY_PATH` — where the code goes on the VM (default: `/opt/myapp`)
+
+#### Step 7 — Push and deploy
+
+```bash
+cd /path/to/your-project
+git add .gitlab-ci.yml
+git commit -m "ci: add deploy pipeline"
+git -c http.sslVerify=false push origin main
+```
+
+The pipeline will automatically:
+1. Run tests (if configured)
+2. `rsync` your project files to the VM via SSH
+3. Execute any post-deploy commands (restart service, etc.)
+
+Check pipeline status in GitLab UI under **CI/CD → Pipelines**.
+
+#### Pipeline template
+
+The sample pipeline at [templates/gitlab-ci-deploy.yml](templates/gitlab-ci-deploy.yml) includes:
+- A **test** stage (add your own test commands)
+- A **deploy** stage that syncs files to the VM and runs post-deploy commands
+- Commented examples for restarting systemd services or Podman containers
 
 ---
 
