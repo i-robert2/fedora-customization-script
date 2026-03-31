@@ -1,6 +1,13 @@
 # 🛸 Fedora Workstation Setup Script
 
-A modular bash script to customize a fresh Fedora Workstation installation with Ghostty terminal, tmux sessions, keyboard fixes, and a personalized shell experience.
+A modular, idempotent bash script that transforms a fresh Fedora Workstation into a dark, minimal, sci-fi–themed development environment — with tiling, auto-hiding dock, custom terminal, CI/CD, and self-hosted GitLab.
+
+Every module can be run independently or all at once. Safe to re-run — nothing gets duplicated.
+
+<!-- Add a screenshot of your desktop here -->
+<!-- ![Desktop Overview](screenshots/desktop.png) -->
+
+---
 
 ## Quick Start
 
@@ -11,11 +18,9 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-After it finishes, **log out and back in** so the keyboard shortcut and dconf settings take effect.
+After it finishes, **log out and back in** so keybindings, window animations, and dconf settings take effect.
 
 ### Running Individual Modules
-
-You don't have to run everything. Pick only the modules you need:
 
 ```bash
 ./setup.sh --list              # see available modules
@@ -24,229 +29,431 @@ You don't have to run everything. Pick only the modules you need:
 ./setup.sh ghostty font keybinding  # just the Ghostty-related setup
 ```
 
-Available modules:
+---
 
-| Module | Description |
-|---|---|
-| `ghostty` | Install Ghostty terminal |
-| `font` | Install JetBrainsMono Nerd Font + configure Ghostty |
-| `keybinding` | Set Ctrl+Shift+Enter shortcut for Ghostty |
-| `capslock` | Fix CapsLock sticky/delayed behavior |
-| `tmux` | Install and configure tmux + TPM + plugins |
-| `prompt` | Customize bash prompt (alien beam) |
-| `tools` | Install CLI tools (bat, eza, fd, fzf, htop, jq, ncdu, ripgrep, duf, tldr) |
-| `rofi` | Install and configure rofi app launcher + Catppuccin theme |
+## Modules
+
+| # | Module | Description |
+|---|---|---|
+| 1 | `ghostty` | Install [Ghostty](https://ghostty.org/) terminal from COPR |
+| 2 | `font` | Install JetBrainsMono Nerd Font + configure Ghostty |
+| 3 | `keybinding` | `Ctrl+Shift+Enter` → open Ghostty |
+| 4 | `capslock` | Fix CapsLock sticky/delayed behavior (desktop + GDM) |
+| 5 | `tmux` | Install tmux + TPM + plugins + dev session script |
+| 6 | `prompt` | Alien beam bash prompt with emoji + colors |
+| 7 | `greeting` | UFO pixel-art landing animation on terminal open |
+| 8 | `tools` | 14 CLI tools + Extension Manager + User Themes extension |
+| 9 | `rofi` | Rofi app launcher + Catppuccin Mocha theme (`Super+D`) |
+| 10 | `power` | Sleep after 3h, auto-shutdown after 4h idle |
+| 11 | `dock` | Dash to Dock — auto-hide, bottom, no Show Apps button |
+| 12 | `windowfx` | Pixelate animation on window open/close (280ms) |
+| 13 | `wallpaper` | Solid black 4K wallpaper |
+| 14 | `userpic` | GitHub profile picture as user avatar (GDM + desktop) |
+| 15 | `tiling` | Tiling with gaps, quarter tiles, white borders |
+| 16 | `topbar` | Fedora logo menu, Vitals, Weather, centered clock, tray |
+| 17 | `appgrid` | Organize app grid into 5 category folders |
+| 18 | `apps` | Discord (Flatpak) + KVM/QEMU + virt-manager |
+| 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS |
 
 ---
 
-## What the Script Does
+## Terminal Setup
 
-The script has 6 modules that run in order. Each module is idempotent — you can safely re-run the script without duplicating anything.
+### Ghostty + Font
 
-### 1. Install Ghostty Terminal
-
-Installs [Ghostty](https://ghostty.org/) from the community-maintained [scottames/ghostty COPR](https://copr.fedorainfracloud.org/coprs/scottames/ghostty/) repository.
-
-### 2. Keyboard Shortcut — Open Ghostty
-
-Registers a GNOME custom keybinding:
+Installs [Ghostty](https://ghostty.org/) from the [scottames/ghostty COPR](https://copr.fedorainfracloud.org/coprs/scottames/ghostty/) and configures it with **JetBrainsMono Nerd Font** (v3.3.0).
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl + Shift + Enter` | Open Ghostty terminal |
+| `Ctrl+Shift+Enter` | Open Ghostty (GNOME keybinding) |
+| `Ctrl+Left/Right` | Jump by word |
+| `Shift+Home/End` | Select to start/end of line |
 
-### 3. Fix CapsLock Sticky Behavior (System-Wide)
+### Bash Prompt — Alien Beam
 
-Fixes the issue where CapsLock "hangs on" and the next character you type is still capitalized after you've already toggled CapsLock off.
+<!-- Add a screenshot of your terminal prompt here -->
+<!-- ![Bash Prompt](screenshots/prompt.png) -->
 
-**What it changes:**
+A custom PS1 prompt with a brief green teleport beam animation (`░▒▓█▓▒░`, ~60ms) before each command:
 
-| Setting | Value | Default |
-|---|---|---|
-| Slow Keys | Disabled | Disabled |
-| Bounce Keys | Disabled | Disabled |
-| Sticky Keys | Disabled | Disabled |
-| Keyboard repeat delay | 250 ms | 500 ms |
-| Keyboard repeat interval | 30 ms | Default |
+```
+👾 username  🛸 hostname  🗂️ ~/current/path
+📢 $
+```
 
-**Applied in two places:**
-- **User session** — via `gsettings` (your desktop)
-- **GDM login screen** — via a system-wide dconf profile at `/etc/dconf/db/gdm.d/99-capslock-fix` (so the fix works when typing your password at login too)
+| Element | Color |
+|---|---|
+| `👾 username` | Bold magenta |
+| `🛸 hostname` | Bold cyan |
+| `🗂️ path` | Bold gold |
+| `📢 $` | Bold green |
 
-### 4. Install tmux + Clipboard Tools
+### UFO Greeting
 
-Installs:
-- **tmux** — terminal multiplexer for persistent sessions, splits, and windows
-- **xclip** — bridges tmux's copy buffer with the system clipboard
+<!-- Add a screenshot or GIF of the greeting animation here -->
+<!-- ![UFO Greeting](screenshots/greeting.gif) -->
 
-### 5. Configure tmux (`~/.tmux.conf`)
+On every new terminal, a pixel-art UFO slides across the screen and lands with a `👽 howdy there!` message. Built with Unicode block characters and ANSI color codes.
 
-A full tmux configuration with the features below. If a `~/.tmux.conf` already exists, it is backed up before overwriting.
+---
 
-#### Prefix Key
+## tmux
 
-The tmux prefix (leader key) is changed from the default `Ctrl+B` to **`Ctrl+Space`** — it's fast and ergonomic (thumb on Ctrl, thumb/index on Space).
+<!-- Add a screenshot of your tmux setup here -->
+<!-- ![tmux](screenshots/tmux.png) -->
 
-> Every tmux command starts with the prefix. For example: `Ctrl+Space` then `|` to split vertically. Press `Ctrl+Space`, release, then press the command key.
+Full tmux configuration with **Catppuccin Mocha** status bar, Vim-style navigation, and automatic session management.
 
-#### Keybindings
+### Prefix Key: `Ctrl+Space`
 
-All command keys are **lowercase** — no Shift needed.
+Every tmux command starts with `Ctrl+Space`. Press it, release, then press the command key.
 
-##### Pane Navigation (Vim-style)
+### Keybindings
+
+#### Pane Navigation (Vim-style)
 
 | Keys | Action |
 |---|---|
-| `Ctrl+Space h` | Move to pane on the **left** |
-| `Ctrl+Space j` | Move to pane **below** |
-| `Ctrl+Space k` | Move to pane **above** |
-| `Ctrl+Space l` | Move to pane on the **right** |
+| `Ctrl+Space h` | Move to pane left |
+| `Ctrl+Space j` | Move to pane below |
+| `Ctrl+Space k` | Move to pane above |
+| `Ctrl+Space l` | Move to pane right |
 
-##### Pane Splitting
+#### Direct Shortcuts (no prefix needed)
+
+| Keys | Action |
+|---|---|
+| `Alt+h/j/k/l` | Navigate panes directly |
+| `Alt+1` through `Alt+5` | Switch to window 1–5 |
+
+#### Pane Splitting
 
 | Keys | Action |
 |---|---|
 | `Ctrl+Space \|` | Split vertically (side by side) |
 | `Ctrl+Space -` | Split horizontally (top/bottom) |
 
-Both open the new pane in **the same directory** you're currently in.
+Both open the new pane in the same directory.
 
-##### Pane Resizing (repeatable)
-
-Hold the prefix, then press Shift + vim key repeatedly:
+#### Pane Resizing (repeatable)
 
 | Keys | Action |
 |---|---|
-| `Ctrl+Space H` | Resize pane left (5 cells) |
-| `Ctrl+Space J` | Resize pane down (5 cells) |
-| `Ctrl+Space K` | Resize pane up (5 cells) |
-| `Ctrl+Space L` | Resize pane right (5 cells) |
+| `Ctrl+Space H/J/K/L` | Resize pane ±5 cells (Shift + vim key) |
 
-> Resizing is the only action that uses Shift (capital H/J/K/L) since lowercase h/j/k/l are used for navigation.
-
-##### Windows
+#### Windows & Sessions
 
 | Keys | Action |
 |---|---|
-| `Ctrl+Space c` | New window (in current directory) |
+| `Ctrl+Space c` | New window (same directory) |
 | `Ctrl+Space 1-9` | Switch to window by number |
+| `Ctrl+Space s` | List sessions (interactive) |
+| `Ctrl+Space n` | Create new named session |
+| `Ctrl+Space d` | Detach from session |
 
-##### Sessions
+#### Copy Mode (Vim keys)
 
-| Keys | Action |
-|---|---|
-| `Ctrl+Space s` | List all sessions (interactive switcher) |
-| `Ctrl+Space n` | Create a new named session |
-| `Ctrl+Space d` | Detach from current session (it keeps running) |
-
-##### Direct Shortcuts (no prefix needed)
-
-These skip the prefix entirely — single chord, instant action:
+Enter with `Ctrl+Space [`:
 
 | Keys | Action |
 |---|---|
-| `Alt+h` | Navigate pane left |
-| `Alt+j` | Navigate pane down |
-| `Alt+k` | Navigate pane up |
-| `Alt+l` | Navigate pane right |
-| `Alt+1` through `Alt+5` | Switch to window 1–5 |
-
-##### Copy Mode (Vim keys)
-
-Enter copy mode with `Ctrl+Space [`, then:
-
-| Keys | Action |
-|---|---|
-| `h/j/k/l` | Navigate |
 | `v` | Start selection |
-| `Ctrl+V` | Rectangle (block) selection |
-| `y` | Yank selection to **system clipboard** |
+| `Ctrl+V` | Rectangle selection |
+| `y` | Yank to system clipboard |
 | `q` | Exit copy mode |
 
-##### Session Save/Restore (via plugins)
+#### Session Save/Restore
 
 | Keys | Action |
 |---|---|
-| `Ctrl+Space Ctrl+s` | **Save** current session layout (tmux-resurrect) |
-| `Ctrl+Space Ctrl+r` | **Restore** last saved session layout |
+| `Ctrl+Space Ctrl+s` | Save session layout (tmux-resurrect) |
+| `Ctrl+Space Ctrl+r` | Restore last saved layout |
 
-#### Appearance
+Sessions auto-save every 15 minutes and auto-restore on tmux start (tmux-continuum).
 
-- **Catppuccin Mocha** theme on the tmux status bar (dark pastel palette)
-- Window numbering starts at **1** (not 0)
-- Windows auto-rename to the currently running command
-- Windows renumber automatically when one is closed
+### Plugins
 
-#### Mouse Support
-
-Everything works with the mouse:
-- **Click** a pane to focus it
-- **Click** a window name in the status bar to switch
-- **Drag** pane borders to resize
-- **Scroll wheel** to browse scrollback history
-
-#### Other Settings
-
-| Setting | Value | Why |
-|---|---|---|
-| Escape delay | 0 ms | Default is 500ms — makes Vim feel laggy |
-| Scrollback history | 50,000 lines | Default is 2,000 |
-| True color | Enabled | Needed for themes/Vim colors |
-| Focus events | Enabled | Apps like Vim can react to focus changes |
-
-### 6. Install TPM and Plugins
-
-[TPM (Tmux Plugin Manager)](https://github.com/tmux-plugins/tpm) is cloned to `~/.tmux/plugins/tpm` and all plugins are installed automatically.
-
-**Installed plugins:**
-
-| Plugin | What it does |
+| Plugin | Purpose |
 |---|---|
-| [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect) | Save and restore session layouts across tmux restarts/reboots |
-| [tmux-continuum](https://github.com/tmux-plugins/tmux-continuum) | Auto-saves sessions every 15 minutes; auto-restores on tmux start |
-| [tmux-yank](https://github.com/tmux-plugins/tmux-yank) | Copies selections to system clipboard (via xclip) |
-| [catppuccin/tmux](https://github.com/catppuccin/tmux) | Catppuccin Mocha color theme for the status bar |
+| [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect) | Save/restore sessions across restarts |
+| [tmux-continuum](https://github.com/tmux-plugins/tmux-continuum) | Auto-save (15 min) + auto-restore |
+| [tmux-yank](https://github.com/tmux-plugins/tmux-yank) | Copy to system clipboard via xclip |
+| [catppuccin/tmux](https://github.com/catppuccin/tmux) | Catppuccin Mocha status bar theme |
 
-### 7. Session Automation
-
-#### `tmux-dev` Script
-
-A helper script installed at `~/.local/bin/tmux-dev` that creates a pre-defined development session:
+### `tmux-dev` Script
 
 ```bash
 tmux-dev              # uses current directory
 tmux-dev ~/myproject  # uses specified directory
 ```
 
-**Layout created:**
+Creates a session with 3 windows: **editor**, **server**, **git**. Reattaches if the session already exists.
 
-| Window | Name | Purpose |
-|---|---|---|
-| 1 | editor | For vim / your code editor |
-| 2 | server | For running a dev server |
-| 3 | git | For git operations |
+### Auto-Attach
 
-If the `dev` session already exists, it reattaches instead of creating a duplicate.
+A `~/.bashrc` hook auto-attaches to your last tmux session when opening Ghostty. No need to type `tmux` — just open the terminal.
 
-#### Auto-Attach on Ghostty Launch
+### Settings
 
-A block is added to `~/.bashrc` so that every time you open Ghostty, bash automatically attaches to your last tmux session. If no session exists, it creates one called `main`.
+| Setting | Value |
+|---|---|
+| Escape delay | 0 ms |
+| Scrollback | 50,000 lines |
+| True color | Enabled |
+| Mouse | Full support (click, drag, scroll) |
+| Window numbering | Starts at 1 |
 
-This means you **never have to manually type `tmux`** — just open Ghostty and you're in a session.
+---
 
-### 8. Custom Bash Prompt
+## CLI Tools
 
-A green teleport beam animation followed by a themed prompt:
+Installed via `dnf`:
+
+| Tool | Description |
+|---|---|
+| `bat` | `cat` with syntax highlighting |
+| `btop` | Resource monitor |
+| `eza` | Modern `ls` replacement |
+| `fastfetch` | System info (neofetch replacement) |
+| `fd` | Fast `find` alternative |
+| `fzf` | Fuzzy finder |
+| `gnome-tweaks` | GNOME customization GUI |
+| `htop` | Interactive process viewer |
+| `jq` | JSON processor |
+| `ncdu` | Disk usage analyzer |
+| `ripgrep` | Fast recursive grep |
+| `duf` | Disk usage (`df` replacement) |
+| `tldr` | Simplified man pages |
+
+Also installs:
+- **Extension Manager** (Flatpak) — browse/install GNOME extensions
+- **User Themes** extension — enables custom shell themes
+
+---
+
+## Desktop Appearance
+
+### Theme & Wallpaper
+
+<!-- Add a screenshot of the desktop here -->
+<!-- ![Desktop](screenshots/desktop-full.png) -->
+
+- **GTK Theme:** Adwaita-dark
+- **Color scheme:** `prefer-dark`
+- **Wallpaper:** Solid black 4K (3840×2160), generated via ImageMagick
+- **User avatar:** Pulled from GitHub profile → visible on GDM login + system menu
+
+### Window Effects
+
+- **Open/close animation:** Pixelate effect (280ms) via Burn My Windows extension
+- **Active window border:** White glow (`rgba(255,255,255,0.5)` box-shadow)
+- **Inactive window border:** Subtle (`rgba(255,255,255,0.06)`)
+
+### Top Bar Layout
+
+<!-- Add a screenshot of the top bar here -->
+<!-- ![Top Bar](screenshots/topbar.png) -->
 
 ```
-🛸 user@hostname:~/current/path$
+[🔵 Fedora ▾]  [CPU 12% | RAM 4.2G | ↑ 1.2MB/s]  ...  [☁ 18°C]  [Tue Mar 31 10:30]  [🔋 tray]
 ```
 
-**How it works:**
-- Before each new prompt, a brief green `░▒▓█▓▒░` flash appears for ~60ms (barely visible, just a subtle shimmer)
-- The prompt shows: 🛸 emoji + green username + blue hostname + yellow path
+| Position | Element |
+|---|---|
+| Left | Fedora logo menu (replaces Activities) |
+| Left | Vitals — CPU, RAM, network, storage, GPU, temp |
+| Center | Advanced Weather (left of clock) |
+| Center | Clock with date + weekday |
+| Right | AppIndicator tray |
+| Right | System indicators |
 
-The beam and prompt colors are bash-level — they are unaffected by the Catppuccin tmux theme (which only styles the status bar).
+- Top bar is **semi-transparent** (`rgba(40,40,40,0.7)`)
+- Activities button is hidden
+- 3 static workspaces
+
+### Dock
+
+<!-- Add a screenshot of the dock here -->
+<!-- ![Dock](screenshots/dock.png) -->
+
+- **Position:** Bottom, auto-hide
+- **Icon size:** 40px
+- **Hidden:** Show Apps button, trash, mounted drives
+- **VM mode:** Uses intellihide (shows when no window covers dock area)
+
+### Tiling & Gaps
+
+<!-- Add a screenshot of tiled windows here -->
+<!-- ![Tiling](screenshots/tiling.png) -->
+
+Powered by Tiling Assistant with **12px symmetric gaps** on all sides.
+
+| Shortcut | Tile Position |
+|---|---|
+| `Super+Left/Right/Up/Down` | Half-screen tiles + directional focus |
+| `Super+U` | Quarter — top-left |
+| `Super+I` | Quarter — top-right |
+| `Super+J` | Quarter — bottom-left |
+| `Super+K` | Quarter — bottom-right |
+| `Super+Y` | Maximize (with gaps) |
+| `Super+N` | Left half, no gaps |
+| `Super+M` | Right half, no gaps |
+| `Super+B` | True fullscreen, no gaps |
+| `Super+Escape` | Restore window |
+
+### App Grid
+
+5 category folders:
+
+| Folder | Contents |
+|---|---|
+| **Dev** | VS Code, Ghostty, Terminal, htop, btop |
+| **Office** | LibreOffice suite, Calendar, Maps, Weather, Contacts |
+| **Media** | Videos, Music, Photos, Screenshot tools |
+| **System** | Settings, System Monitor, Disks, Tweaks, Logs |
+| **Accessories** | Text Editor, Calculator, Files, Archive Manager |
+
+### Rofi Launcher
+
+<!-- Add a screenshot of rofi here -->
+<!-- ![Rofi](screenshots/rofi.png) -->
+
+| Setting | Value |
+|---|---|
+| Shortcut | `Super+D` |
+| Theme | Catppuccin Mocha |
+| Font | JetBrainsMono Nerd Font 12 |
+| Modes | drun, run, window |
+
+---
+
+## Keyboard Fix — CapsLock
+
+Fixes the sticky/delayed CapsLock behavior system-wide:
+
+| Setting | Value |
+|---|---|
+| Slow Keys | Disabled |
+| Bounce Keys | Disabled |
+| Sticky Keys | Disabled |
+| Repeat delay | 250 ms |
+| Repeat interval | 30 ms |
+
+Applied to both user session (gsettings) and GDM login screen (dconf).
+
+---
+
+## Power Management
+
+| Event | Action |
+|---|---|
+| 3 hours idle (AC or battery) | Suspend |
+| 4 hours all-sessions idle | Auto shutdown |
+| In VM: screen blanking | Disabled |
+
+Auto-shutdown uses a custom systemd timer that checks every 15 minutes via `loginctl`.
+
+---
+
+## Apps & Virtualization
+
+### Discord
+
+Installed via Flatpak (sandboxed, auto-updated).
+
+### KVM/QEMU + virt-manager
+
+Native Fedora virtualization — near bare-metal VM performance.
+
+```bash
+virt-manager     # GUI for managing VMs
+virsh list --all # CLI to list all VMs
+```
+
+The `libvirtd` service is enabled at boot. Your user is added to the `libvirt` group for passwordless VM management.
+
+### GitLab CE (Self-Hosted)
+
+<!-- Add a screenshot of the GitLab UI here -->
+<!-- ![GitLab](screenshots/gitlab.png) -->
+
+A full GitLab instance running locally as a rootless Podman container with HTTPS.
+
+| Setting | Value |
+|---|---|
+| URL | `https://localhost:8929` |
+| SSH port | `2224` |
+| Data | `~/gitlab/{config,logs,data}` |
+| SSL | Self-signed (10-year validity) |
+| Auto-start | Yes (systemd user service + lingering) |
+| Network | Localhost only (`127.0.0.1`) — not exposed to LAN/internet |
+
+**First-time setup:**
+
+```bash
+# Get the initial root password
+podman exec gitlab-ce cat /etc/gitlab/initial_root_password
+
+# Open https://localhost:8929, login as "root", change password
+# Then create a project and push:
+git -c http.sslVerify=false remote add origin https://localhost:8929/root/my-project.git
+git -c http.sslVerify=false push -u origin main
+```
+
+**Management:**
+
+```bash
+systemctl --user status gitlab-ce   # check status
+systemctl --user restart gitlab-ce  # restart
+podman logs -f gitlab-ce            # live logs
+```
+
+---
+
+## CI/CD — Automatic Deployment
+
+This repo uses GitHub Actions with a **self-hosted runner** on the Fedora VM. On every push to `main`:
+
+1. **ShellCheck** lints all scripts (`--severity=error`)
+2. **Deploy** runs only the changed modules on the VM
+
+```
+push to main → ShellCheck lint → detect changed modules → run setup.sh <changed modules>
+```
+
+Only the modules whose files changed in the commit are re-run. If `setup.sh` itself changes, all modules run.
+
+---
+
+## Adding Screenshots
+
+To add your own screenshots, create a `screenshots/` directory and capture:
+
+| File | What to capture |
+|---|---|
+| `desktop.png` | Full desktop with a few tiled windows |
+| `prompt.png` | Terminal showing the alien beam prompt |
+| `greeting.gif` | GIF of the UFO landing animation |
+| `tmux.png` | tmux with splits and Catppuccin status bar |
+| `topbar.png` | Top bar showing logo, vitals, weather, clock |
+| `dock.png` | Dock visible at the bottom |
+| `tiling.png` | 2-4 windows tiled with gaps and white borders |
+| `rofi.png` | Rofi launcher open with Catppuccin theme |
+| `gitlab.png` | GitLab CE login or project page |
+
+Then uncomment the `![...](screenshots/...)` lines in this README.
+
+You can capture a GIF with:
+```bash
+# Install peek (GIF recorder)
+flatpak install flathub com.uploadedlobster.peek
+```
+
+---
+
+## License
+
+See [LICENSE](LICENSE).
 
 ### 9. CLI Tools
 
