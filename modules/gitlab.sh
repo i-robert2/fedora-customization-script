@@ -69,7 +69,21 @@ RUBY
 
         echo "  GitLab CE container started."
         echo ""
-        echo "  NOTE: GitLab takes a few minutes to fully initialize."
+        echo "  Waiting for GitLab to initialize (this may take several minutes)..."
+        # Wait for GitLab to be ready before triggering reconfigure
+        local retries=0
+        while ! podman exec gitlab-ce gitlab-ctl status &>/dev/null; do
+            retries=$((retries + 1))
+            if [[ $retries -ge 60 ]]; then
+                echo "  WARNING: GitLab did not start within 5 minutes. Check 'podman logs gitlab-ce'."
+                break
+            fi
+            sleep 5
+        done
+
+        echo "  Applying HTTPS configuration..."
+        podman exec gitlab-ce gitlab-ctl reconfigure
+
         echo "  Access the UI at: https://localhost:${GITLAB_HTTPS_PORT}"
         echo "  SSH clone port:   ${GITLAB_SSH_PORT}"
     fi
