@@ -1,0 +1,46 @@
+# Ansible Playbook — Check health of all VMs
+#
+# Gathers disk, memory, CPU load, uptime, and service status
+# from all VMs in parallel and displays a summary.
+#
+# Usage:
+#   ansible-playbook -i inventory.ini check-health.yml
+#   ansible-playbook -i inventory.ini check-health.yml --limit webservers
+#   ansible-playbook -i inventory.ini check-health.yml -f 20   # 20 VMs in parallel
+---
+- name: Health check — all VMs
+  hosts: all
+  gather_facts: yes
+  become: false
+
+  tasks:
+    - name: Disk usage
+      command: df -h /
+      register: disk
+      changed_when: false
+
+    - name: Memory usage
+      command: free -m
+      register: mem
+      changed_when: false
+
+    - name: CPU load average
+      command: cat /proc/loadavg
+      register: load
+      changed_when: false
+
+    - name: Uptime
+      command: uptime -p
+      register: up
+      changed_when: false
+
+    - name: Print health summary
+      debug:
+        msg: |
+          ── {{ inventory_hostname }} ({{ ansible_host }}) ──
+          OS:     {{ ansible_distribution }} {{ ansible_distribution_version }}
+          CPUs:   {{ ansible_processor_vcpus }}
+          Uptime: {{ up.stdout }}
+          Load:   {{ load.stdout }}
+          Disk:   {{ disk.stdout_lines[-1] }}
+          Memory: {{ mem.stdout_lines[1] }}

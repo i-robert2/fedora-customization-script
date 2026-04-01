@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd ollama openwebui searxng comfyui tts continue)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops ollama openwebui searxng comfyui tts continue)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -25,7 +25,7 @@ declare -A MODULE_DESC=(
     [capslock]="Fix CapsLock sticky/delayed behavior"
     [tmux]="Install and configure tmux + TPM + plugins"
     [prompt]="Customize bash prompt (alien beam)"
-    [tools]="Install CLI tools (bat, btop, eza, fd, fastfetch, fzf, gnome-tweaks, htop, jq, ncdu, ripgrep, duf, tldr) + Extension Manager + User Themes"
+    [tools]="Install CLI tools + OCR (Tesseract, PaddleOCR) + ExifTool + Extension Manager"
     [rofi]="Install and configure rofi app launcher + Catppuccin theme"
     [greeting]="UFO landing animation on terminal open"
     [power]="Sleep after 3h, shutdown after 4h of inactivity"
@@ -36,9 +36,10 @@ declare -A MODULE_DESC=(
     [tiling]="Tiling: halves, quarters, no-gap halves/fullscreen + gaps + white borders"
     [topbar]="Fedora logo menu, Vitals, Advanced Weather, tray, clock-right"
     [appgrid]="Organize app grid into category folders"
-    [apps]="Install user apps (Discord, KVM/QEMU + virt-manager)"
+    [apps]="Install user apps (Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, KVM/QEMU)"
     [gitlab]="Install GitLab CE (self-hosted, local Podman container)"
     [cicd]="Install GitLab Runner + SSH deploy key for CI/CD pipelines"
+    [vmops]="SSH helpers + Ansible playbooks for managing KVM/QEMU VMs"
     [ollama]="Install Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4)"
     [openwebui]="Install Open WebUI (ChatGPT-like interface for local AI)"
     [searxng]="Install SearXNG (self-hosted search engine for AI web search)"

@@ -1,0 +1,55 @@
+# Ansible Playbook — Deploy an application to VMs
+#
+# Syncs project files via rsync and optionally restarts a service.
+#
+# Usage:
+#   # Deploy to webservers:
+#   ansible-playbook -i inventory.ini deploy-app.yml \
+#     -e "src_path=~/myproject deploy_path=/opt/myapp" \
+#     --limit webservers
+#
+#   # Deploy and restart a service:
+#   ansible-playbook -i inventory.ini deploy-app.yml \
+#     -e "src_path=~/myproject deploy_path=/opt/myapp restart_service=myapp"
+---
+- name: Deploy application to VMs
+  hosts: all
+  become: true
+
+  vars:
+    src_path: ""
+    deploy_path: ""
+    restart_service: ""
+
+  tasks:
+    - name: Validate required variables
+      fail:
+        msg: "Set src_path and deploy_path: -e 'src_path=~/myproject deploy_path=/opt/myapp'"
+      when: src_path == "" or deploy_path == ""
+
+    - name: Ensure deploy directory exists
+      file:
+        path: "{{ deploy_path }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: "0755"
+
+    - name: Sync project files
+      synchronize:
+        src: "{{ src_path }}/"
+        dest: "{{ deploy_path }}/"
+        delete: yes
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=__pycache__"
+
+    - name: Restart service (if specified)
+      systemd:
+        name: "{{ restart_service }}"
+        state: restarted
+      when: restart_service != ""
+
+    - name: Confirm deployment
+      debug:
+        msg: "{{ inventory_hostname }}: deployed {{ src_path }} → {{ deploy_path }}"

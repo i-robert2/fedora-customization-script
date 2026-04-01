@@ -55,12 +55,13 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 18 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, KVM/QEMU |
 | 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS (manual start) |
 | 20 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
-| 21 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
-| 22 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
-| 23 | `searxng` | SearXNG — self-hosted search engine for AI web search |
-| 24 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
-| 25 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
-| 26 | `continue` | VSCodium + Continue AI coding extension |
+| 21 | `vmops` | SSH helpers + Ansible playbooks for managing KVM/QEMU VMs |
+| 22 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
+| 23 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
+| 24 | `searxng` | SearXNG — self-hosted search engine for AI web search |
+| 25 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
+| 26 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
+| 27 | `continue` | VSCodium + Continue AI coding extension |
 
 ---
 
@@ -479,6 +480,155 @@ podman logs -f gitlab-ce            # live logs
 ```
 
 A desktop launcher is created at `~/.local/share/applications/gitlab-ce.desktop` — click it to start GitLab and open the browser automatically.
+
+</details>
+
+<details>
+<summary><strong>📡 VM Operations</strong> — SSH helpers + Ansible for managing KVM/QEMU VMs</summary>
+
+```bash
+./setup.sh vmops
+```
+
+Installs **Ansible** and sets up two methods for managing your KVM/QEMU VMs from the host machine: **SSH helper functions** for quick ad-hoc commands, and **Ansible playbooks** for structured operations across many VMs.
+
+### Prerequisites
+
+1. KVM/QEMU VMs created via `virt-manager` (from the `apps` module)
+2. SSH deploy key generated (from the `cicd` module)
+3. Deploy key copied to each VM:
+   ```bash
+   ssh-copy-id -i ~/.ssh/gitlab-deploy.pub deploy@VM_IP
+   ```
+4. VM IPs configured (find with `virsh domifaddr VM_NAME`):
+   ```bash
+   nano ~/.ssh/config.d/vms.conf       # for SSH helpers
+   nano ~/ansible/inventory.ini         # for Ansible
+   ```
+
+---
+
+### Method 1: SSH Helpers (quick, 1–5 VMs)
+
+Shell functions loaded into your terminal automatically. Best for quick checks and one-off commands.
+
+#### Single VM
+
+| Command | Description |
+|---|---|
+| `vm-status vm-web1` | Disk, memory, CPU load, uptime |
+| `vm-service vm-web1 nginx` | Check a service status |
+| `vm-logs vm-web1 nginx` | Tail service logs (live) |
+| `vm-restart vm-web1 nginx` | Restart a service |
+| `vm-exec vm-web1 'any command'` | Run any command on a VM |
+
+#### Multiple VMs
+
+| Command | Description |
+|---|---|
+| `vm-status-all vm-web1 vm-web2 vm-db1` | Check status of multiple VMs |
+| `vm-exec-all 'free -m' vm-web1 vm-web2` | Run command on multiple VMs (sequential) |
+| `vm-exec-parallel 'free -m' vm-web1 vm-web2 vm-db1` | Run command on multiple VMs (parallel) |
+
+**Example workflow:**
+
+```bash
+# Quick health check on your web servers
+vm-status vm-web1
+vm-status vm-web2
+
+# Check if nginx is running everywhere
+vm-exec-parallel 'systemctl is-active nginx' vm-web1 vm-web2 vm-web3
+
+# Restart a misbehaving service
+vm-restart vm-web2 nginx
+
+# Tail logs to debug an issue
+vm-logs vm-web2 nginx
+```
+
+---
+
+### Method 2: Ansible (structured, 5–50+ VMs)
+
+Playbook-based operations with parallel execution, error handling, and formatted output. Best when managing many VMs or running the same checks regularly.
+
+All playbooks are in `~/ansible/`. Edit `inventory.ini` first with your VM IPs.
+
+#### Health Check — All VMs
+
+```bash
+cd ~/ansible
+
+# Check all VMs
+ansible-playbook -i inventory.ini check-health.yml
+
+# Check only webservers
+ansible-playbook -i inventory.ini check-health.yml --limit webservers
+
+# Check all 20 VMs in parallel (default is 5 at a time)
+ansible-playbook -i inventory.ini check-health.yml -f 20
+```
+
+Outputs per-VM summary: OS, CPUs, uptime, load, disk, memory.
+
+#### Service Management
+
+```bash
+# Check nginx status on all webservers
+ansible-playbook -i inventory.ini check-service.yml \
+  -e "service_name=nginx" --limit webservers
+
+# Restart postgres on all database servers
+ansible-playbook -i inventory.ini check-service.yml \
+  -e "service_name=postgresql service_action=restarted" --limit databases
+```
+
+#### Deploy Application
+
+```bash
+# Deploy project files to webservers and restart the service
+ansible-playbook -i inventory.ini deploy-app.yml \
+  -e "src_path=~/myproject deploy_path=/opt/myapp restart_service=myapp" \
+  --limit webservers
+```
+
+#### Ad-hoc Commands
+
+```bash
+# Run any command on all VMs
+ansible all -i inventory.ini -m command -a "uptime"
+
+# Run on a specific group
+ansible databases -i inventory.ini -m command -a "pg_isready"
+
+# Copy a file to all VMs
+ansible all -i inventory.ini -m copy -a "src=./config.yml dest=/opt/myapp/config.yml"
+```
+
+---
+
+### When to Use Which
+
+| Scenario | Use |
+|---|---|
+| Quick check on 1–3 VMs | SSH helpers (`vm-status`, `vm-exec`) |
+| Same command on 5+ VMs | Ansible ad-hoc (`ansible all -m command -a ...`) |
+| Structured health check | Ansible playbook (`check-health.yml`) |
+| Service restart across fleet | Ansible playbook (`check-service.yml`) |
+| Deploy code to multiple VMs | Ansible playbook (`deploy-app.yml`) |
+| Tail logs in real-time | SSH helper (`vm-logs`) |
+
+### Files
+
+| File | Location | Purpose |
+|---|---|---|
+| `vms.conf` | `~/.ssh/config.d/vms.conf` | SSH config with VM hostnames/IPs |
+| `vm-ops-helpers.sh` | `~/.local/bin/vm-ops-helpers.sh` | SSH helper functions (sourced in bashrc) |
+| `inventory.ini` | `~/ansible/inventory.ini` | Ansible inventory (VM groups + IPs) |
+| `check-health.yml` | `~/ansible/check-health.yml` | Health check playbook |
+| `check-service.yml` | `~/ansible/check-service.yml` | Service check/restart playbook |
+| `deploy-app.yml` | `~/ansible/deploy-app.yml` | Application deployment playbook |
 
 </details>
 
