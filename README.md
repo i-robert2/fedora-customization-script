@@ -42,7 +42,7 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 5 | `tmux` | Install tmux + TPM + plugins + dev session script |
 | 6 | `prompt` | Alien beam bash prompt with emoji + colors |
 | 7 | `greeting` | UFO pixel-art landing animation on terminal open |
-| 8 | `tools` | 14 CLI tools + Extension Manager + User Themes extension |
+| 8 | `tools` | CLI tools + OCR (Tesseract, PaddleOCR) + ExifTool + Extension Manager |
 | 9 | `rofi` | Rofi app launcher + Catppuccin Mocha theme (`Super+D`) |
 | 10 | `power` | Sleep after 3h, auto-shutdown after 4h idle |
 | 11 | `dock` | Dash to Dock — auto-hide, bottom, no Show Apps button |
@@ -52,8 +52,8 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 15 | `tiling` | Tiling with gaps, quarter tiles, white borders |
 | 16 | `topbar` | Fedora logo menu, Vitals, Weather, centered clock, tray |
 | 17 | `appgrid` | Organize app grid into 5 category folders |
-| 18 | `apps` | Discord (Flatpak) + KVM/QEMU + virt-manager |
-| 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS |
+| 18 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, KVM/QEMU |
+| 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS (manual start) |
 | 20 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
 | 21 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
 | 22 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
@@ -234,10 +234,37 @@ Installed via `dnf`:
 | `ripgrep` | Fast recursive grep |
 | `duf` | Disk usage (`df` replacement) |
 | `tldr` | Simplified man pages |
+| `tesseract` | OCR engine for images |
+| `ocrmypdf` | Adds searchable text layer to scanned PDFs |
+| `exiftool` | Metadata viewer/stripper for any file type |
 
 Also installs:
+- **PaddleOCR** (pip) — highest-accuracy OCR engine (scene text, handwriting, complex layouts)
+- **Tesseract English language pack** — required for Tesseract/OCRmyPDF
 - **Extension Manager** (Flatpak) — browse/install GNOME extensions
 - **User Themes** extension — enables custom shell themes
+
+**OCR usage:**
+
+```bash
+# Tesseract — extract text from an image
+tesseract image.png output        # creates output.txt
+tesseract image.png - | head       # print to stdout
+
+# OCRmyPDF — make a scanned PDF searchable
+ocrmypdf scanned.pdf searchable.pdf
+
+# PaddleOCR — best accuracy (especially for photos/scene text)
+paddleocr --image_dir image.png --lang en
+```
+
+**Metadata stripping:**
+
+```bash
+exiftool -all= photo.jpg           # strip all metadata from a file
+exiftool -all= *.jpg               # batch strip
+exiftool photo.jpg                 # view all metadata
+```
 
 </details>
 
@@ -369,7 +396,34 @@ Auto-shutdown uses a custom systemd timer that checks every 15 minutes via `logi
 </details>
 
 <details>
-<summary><strong>📦 Apps & Virtualization</strong> — Discord, KVM/QEMU, GitLab CE</summary>
+<summary><strong>📦 Apps & Virtualization</strong> — Image editors, video, media server, VMs, GitLab CE</summary>
+
+### Image Editors
+
+| App | Type | Install |
+|---|---|---|
+| **Drawing** | Simple Paint-like editor (crop, annotate, arrows) | Flatpak |
+| **GIMP** | Full-featured image editor (Photoshop alternative) | dnf |
+| **Krita** | Digital painting and illustration | dnf |
+| **darktable** | Non-destructive RAW photo editing (Lightroom Develop) | dnf |
+| **digiKam** | Photo & video library management (Lightroom Library) — tagging, face detection, albums | dnf |
+
+### Video Editing
+
+| App | Description | Install |
+|---|---|---|
+| **Kdenlive** | Full video editor — timeline, effects, transitions, proxy editing, 4K | dnf |
+
+### Jellyfin — Self-Hosted Media Server
+
+A self-hosted Netflix/Plex alternative for streaming your local media library. Installed via dnf with **no auto-start** — launch it from the desktop app icon when needed.
+
+```bash
+# Or start/stop manually:
+sudo systemctl start jellyfin     # start
+sudo systemctl stop jellyfin      # stop
+# Then open http://localhost:8096
+```
 
 ### Discord
 
@@ -399,7 +453,7 @@ A full GitLab instance running locally as a rootless Podman container with HTTPS
 | SSH port | `2224` |
 | Data | `~/gitlab/{config,logs,data}` |
 | SSL | Self-signed (10-year validity) |
-| Auto-start | Yes (systemd user service + lingering) |
+| Auto-start | No (manual start via desktop launcher) |
 | Network | Localhost only (`127.0.0.1`) — not exposed to LAN/internet |
 
 **First-time setup:**
@@ -417,10 +471,14 @@ git -c http.sslVerify=false push -u origin main
 **Management:**
 
 ```bash
+systemctl --user start gitlab-ce    # start (or click the desktop launcher)
+systemctl --user stop gitlab-ce     # stop
 systemctl --user status gitlab-ce   # check status
 systemctl --user restart gitlab-ce  # restart
 podman logs -f gitlab-ce            # live logs
 ```
+
+A desktop launcher is created at `~/.local/share/applications/gitlab-ce.desktop` — click it to start GitLab and open the browser automatically.
 
 </details>
 
