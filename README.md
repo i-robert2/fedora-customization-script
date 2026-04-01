@@ -427,6 +427,20 @@ sudo systemctl stop jellyfin      # stop
 # Then open http://localhost:8096
 ```
 
+**Switching to auto-start on boot:**
+
+If you want Jellyfin always running (e.g., streaming to other devices on your network):
+
+```bash
+sudo systemctl enable jellyfin
+```
+
+To revert back to manual start:
+
+```bash
+sudo systemctl disable jellyfin
+```
+
 ### Discord
 
 Installed via Flatpak (sandboxed, auto-updated).
@@ -481,6 +495,21 @@ podman logs -f gitlab-ce            # live logs
 ```
 
 A desktop launcher is created at `~/.local/share/applications/gitlab-ce.desktop` — click it to start GitLab and open the browser automatically.
+
+**Switching to auto-start on boot:**
+
+If you want GitLab to start automatically when your machine boots (e.g., for a persistent development server):
+
+```bash
+systemctl --user enable gitlab-ce.service
+loginctl enable-linger $USER
+```
+
+To revert back to manual start:
+
+```bash
+systemctl --user disable gitlab-ce.service
+```
 
 </details>
 
@@ -731,6 +760,14 @@ To enable auto-start on boot (when ready for production):
 ```bash
 systemctl --user enable prometheus.service grafana.service
 loginctl enable-linger $USER
+```
+
+`enable-linger` ensures user services start at boot before you log in — without it, the services only start after your first login.
+
+To revert back to manual start:
+
+```bash
+systemctl --user disable prometheus.service grafana.service
 ```
 
 ### Endpoints
