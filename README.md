@@ -56,12 +56,13 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS (manual start) |
 | 20 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
 | 21 | `vmops` | SSH helpers + Ansible playbooks for managing KVM/QEMU VMs |
-| 22 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
-| 23 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
-| 24 | `searxng` | SearXNG — self-hosted search engine for AI web search |
-| 25 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
-| 26 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
-| 27 | `continue` | VSCodium + Continue AI coding extension |
+| 22 | `monitoring` | Prometheus + Grafana VM monitoring (Podman, manual start) |
+| 23 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
+| 24 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
+| 25 | `searxng` | SearXNG — self-hosted search engine for AI web search |
+| 26 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
+| 27 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
+| 28 | `continue` | VSCodium + Continue AI coding extension |
 
 ---
 
@@ -549,7 +550,7 @@ vm-logs vm-web2 nginx
 
 ---
 
-### Method 2: Ansible (structured, 5–50+ VMs)
+### Method 2: Ansible (structured, 5+ VMs)
 
 Playbook-based operations with parallel execution, error handling, and formatted output. Best when managing many VMs or running the same checks regularly.
 
@@ -566,8 +567,8 @@ ansible-playbook -i inventory.ini check-health.yml
 # Check only webservers
 ansible-playbook -i inventory.ini check-health.yml --limit webservers
 
-# Check all 20 VMs in parallel (default is 5 at a time)
-ansible-playbook -i inventory.ini check-health.yml -f 20
+# Check all 5 VMs in parallel (default is 5 at a time)
+ansible-playbook -i inventory.ini check-health.yml -f 5
 ```
 
 Outputs per-VM summary: OS, CPUs, uptime, load, disk, memory.
@@ -629,6 +630,125 @@ ansible all -i inventory.ini -m copy -a "src=./config.yml dest=/opt/myapp/config
 | `check-health.yml` | `~/ansible/check-health.yml` | Health check playbook |
 | `check-service.yml` | `~/ansible/check-service.yml` | Service check/restart playbook |
 | `deploy-app.yml` | `~/ansible/deploy-app.yml` | Application deployment playbook |
+
+</details>
+
+<details>
+<summary><strong>📊 Monitoring</strong> — Prometheus + Grafana for KVM/QEMU VMs</summary>
+
+```bash
+./setup.sh monitoring
+```
+
+Sets up **Prometheus** and **Grafana** as Podman containers on the host, plus an Ansible playbook to deploy **node_exporter** to your VMs. No auto-start — launch manually when needed.
+
+### Architecture
+
+```
+┌──────────────┖  ┌──────────────┖  ┌──────────────┖
+│  VM-web1     │  │  VM-web2     │  │  VM-db1      │
+│  node_exporter│  │  node_exporter│  │  node_exporter│
+│  :9100       │  │  :9100       │  │  :9100       │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+       │                    │                    │
+       └────────────┬───────┴────────────┘
+                    │ scrapes :9100 every 15s
+            ┌───────┴───────┖
+            │  Prometheus   │  stores time-series metrics
+            │  :9090        │  30-day retention
+            └───────┬───────┘
+                    │
+            ┌───────┴───────┖
+            │   Grafana     │  dashboards + graphs
+            │   :3001       │  login: admin / admin
+            └───────────────┘
+```
+
+### Setup
+
+#### Step 1 — Install the monitoring module
+
+```bash
+./setup.sh monitoring
+```
+
+This creates Prometheus and Grafana containers (not started), systemd services, a convenience script, and a desktop launcher.
+
+#### Step 2 — Configure Prometheus targets
+
+Edit `~/monitoring/prometheus/prometheus.yml` with your VM IPs:
+
+```bash
+nano ~/monitoring/prometheus/prometheus.yml
+```
+
+#### Step 3 — Install node_exporter on VMs
+
+Uses the Ansible playbook to install node_exporter on all VMs:
+
+```bash
+cd ~/ansible
+ansible-playbook -i inventory.ini install-node-exporter.yml
+```
+
+This downloads, installs, and starts node_exporter as a systemd service on each VM.
+
+#### Step 4 — Start monitoring
+
+```bash
+monitoring start
+# or click the Grafana desktop icon
+```
+
+#### Step 5 — Set up Grafana dashboard
+
+1. Open `http://localhost:3001` (login: `admin` / `admin`)
+2. Prometheus is auto-configured as a datasource
+3. Go to **Dashboards → Import → enter ID `1860`** → Load
+4. Select the **Prometheus** datasource → Import
+
+This gives you the **Node Exporter Full** dashboard with CPU, RAM, disk, network graphs for all VMs.
+
+### Management
+
+```bash
+monitoring start     # start Prometheus + Grafana
+monitoring stop      # stop both
+monitoring status    # check if running
+```
+
+Or use systemd directly:
+
+```bash
+systemctl --user start prometheus.service
+systemctl --user start grafana.service
+systemctl --user stop prometheus.service
+systemctl --user stop grafana.service
+```
+
+To enable auto-start on boot (when ready for production):
+
+```bash
+systemctl --user enable prometheus.service grafana.service
+loginctl enable-linger $USER
+```
+
+### Endpoints
+
+| Service | URL | Purpose |
+|---|---|---|
+| Prometheus | `http://localhost:9090` | Metric queries, targets status, alerts |
+| Grafana | `http://localhost:3001` | Dashboards and graphs |
+| node_exporter (per VM) | `http://VM_IP:9100/metrics` | Raw metrics endpoint |
+
+### Files
+
+| File | Location | Purpose |
+|---|---|---|
+| `prometheus.yml` | `~/monitoring/prometheus/prometheus.yml` | Prometheus scrape config (VM targets) |
+| `grafana-datasource.yml` | `~/monitoring/grafana/provisioning/datasources/` | Auto-configures Prometheus in Grafana |
+| `install-node-exporter.yml` | `~/ansible/install-node-exporter.yml` | Ansible playbook to deploy node_exporter |
+| `monitoring` | `~/.local/bin/monitoring` | Start/stop/status convenience script |
 
 </details>
 

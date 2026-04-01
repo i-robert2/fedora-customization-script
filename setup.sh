@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops ollama openwebui searxng comfyui tts continue)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops monitoring ollama openwebui searxng comfyui tts continue)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -40,6 +40,7 @@ declare -A MODULE_DESC=(
     [gitlab]="Install GitLab CE (self-hosted, local Podman container)"
     [cicd]="Install GitLab Runner + SSH deploy key for CI/CD pipelines"
     [vmops]="SSH helpers + Ansible playbooks for managing KVM/QEMU VMs"
+    [monitoring]="Prometheus + Grafana monitoring for KVM/QEMU VMs (Podman)"
     [ollama]="Install Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4)"
     [openwebui]="Install Open WebUI (ChatGPT-like interface for local AI)"
     [searxng]="Install SearXNG (self-hosted search engine for AI web search)"

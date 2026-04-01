@@ -1,0 +1,93 @@
+# Ansible Playbook — Install node_exporter on VMs
+#
+# Installs Prometheus node_exporter on target VMs so Prometheus
+# can scrape system metrics (CPU, RAM, disk, network).
+#
+# Usage:
+#   ansible-playbook -i inventory.ini install-node-exporter.yml
+#   ansible-playbook -i inventory.ini install-node-exporter.yml --limit webservers
+---
+- name: Install node_exporter on VMs
+  hosts: all
+  become: true
+
+  vars:
+    node_exporter_version: "1.7.0"
+    node_exporter_url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+
+  tasks:
+    - name: Check if node_exporter is already installed
+      stat:
+        path: /usr/local/bin/node_exporter
+      register: ne_bin
+
+    - name: Download node_exporter
+      get_url:
+        url: "{{ node_exporter_url }}"
+        dest: /tmp/node_exporter.tar.gz
+      when: not ne_bin.stat.exists
+
+    - name: Extract node_exporter
+      unarchive:
+        src: /tmp/node_exporter.tar.gz
+        dest: /tmp/
+        remote_src: yes
+      when: not ne_bin.stat.exists
+
+    - name: Install node_exporter binary
+      copy:
+        src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+        dest: /usr/local/bin/node_exporter
+        mode: "0755"
+        remote_src: yes
+      when: not ne_bin.stat.exists
+
+    - name: Create node_exporter user
+      user:
+        name: node_exporter
+        shell: /usr/sbin/nologin
+        system: yes
+        create_home: no
+
+    - name: Create systemd service
+      copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Prometheus Node Exporter
+          After=network.target
+
+          [Service]
+          User=node_exporter
+          ExecStart=/usr/local/bin/node_exporter
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start node_exporter
+      systemd:
+        name: node_exporter
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Verify node_exporter is responding
+      uri:
+        url: "http://localhost:9100/metrics"
+        return_content: no
+      register: ne_check
+      failed_when: ne_check.status != 200
+
+    - name: Confirm
+      debug:
+        msg: "{{ inventory_hostname }}: node_exporter running on :9100"
+
+    - name: Cleanup
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/node_exporter.tar.gz
+        - "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64"

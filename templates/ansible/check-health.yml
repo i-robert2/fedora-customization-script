@@ -6,7 +6,7 @@
 # Usage:
 #   ansible-playbook -i inventory.ini check-health.yml
 #   ansible-playbook -i inventory.ini check-health.yml --limit webservers
-#   ansible-playbook -i inventory.ini check-health.yml -f 20   # 20 VMs in parallel
+#   ansible-playbook -i inventory.ini check-health.yml -f 5    # 5 VMs in parallel
 ---
 - name: Health check — all VMs
   hosts: all
