@@ -86,7 +86,7 @@ RUBY
         echo "  SSH clone port:   ${GITLAB_SSH_PORT}"
     fi
 
-    # --- Create a systemd user service so GitLab starts on boot ---
+    # --- Create a systemd user service for GitLab (manual start only) ---
     local SERVICE_DIR="$HOME/.config/systemd/user"
     local SERVICE_FILE="$SERVICE_DIR/gitlab-ce.service"
 
@@ -102,7 +102,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-Restart=always
+Restart=on-failure
 RestartSec=10
 ExecStartPre=-/usr/bin/podman stop gitlab-ce
 ExecStartPre=-/usr/bin/podman rm gitlab-ce
@@ -122,10 +122,27 @@ ExecStop=/usr/bin/podman stop gitlab-ce
 WantedBy=default.target
 EOF
         systemctl --user daemon-reload
-        systemctl --user enable gitlab-ce.service
-        # Enable lingering so user services start at boot (before login)
-        loginctl enable-linger "$USER"
-        echo "  GitLab will auto-start on boot."
+        echo "  GitLab systemd service created (manual start only)."
+    fi
+
+    # --- GitLab desktop launcher ---
+    local GITLAB_DESKTOP="$HOME/.local/share/applications/gitlab-ce.desktop"
+    if [[ -f "$GITLAB_DESKTOP" ]]; then
+        echo "  GitLab desktop launcher already exists, skipping."
+    else
+        echo "  Creating GitLab desktop launcher..."
+        mkdir -p "$HOME/.local/share/applications"
+        cat > "$GITLAB_DESKTOP" <<EOF
+[Desktop Entry]
+Name=GitLab CE
+Comment=Self-hosted GitLab instance
+Exec=bash -c 'systemctl --user start gitlab-ce.service; sleep 5; xdg-open https://localhost:${GITLAB_HTTPS_PORT}'
+Icon=gitlab
+Terminal=false
+Type=Application
+Categories=Development;ProjectManagement;
+EOF
+        echo "  GitLab desktop launcher created."
     fi
 
     echo ""
