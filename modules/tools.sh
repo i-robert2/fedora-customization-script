@@ -16,6 +16,9 @@ mod_tools() {
         [rg]="ripgrep"        # fast recursive grep
         [duf]="duf"           # disk usage (df replacement)
         [tldr]="tldr"         # simplified man pages
+        [tesseract]="tesseract" # OCR engine for images
+        [ocrmypdf]="ocrmypdf"   # adds searchable text layer to scanned PDFs
+        [exiftool]="perl-Image-ExifTool" # metadata viewer/stripper for files
     )
 
     local to_install=()
@@ -33,6 +36,24 @@ mod_tools() {
         echo "  Installing: ${to_install[*]}"
         sudo dnf install -y "${to_install[@]}"
         echo "  CLI tools installed."
+    fi
+
+    # --- Tesseract language pack ---
+    if rpm -q tesseract-langpack-eng &>/dev/null; then
+        echo "  Tesseract English language pack already installed, skipping."
+    else
+        echo "  Installing Tesseract English language pack..."
+        sudo dnf install -y tesseract-langpack-eng
+        echo "  Tesseract English language pack installed."
+    fi
+
+    # --- PaddleOCR (best accuracy OCR engine) ---
+    if python3 -c "import paddleocr" &>/dev/null 2>&1; then
+        echo "  PaddleOCR is already installed, skipping."
+    else
+        echo "  Installing PaddleOCR via pip..."
+        pip3 install --user paddlepaddle paddleocr
+        echo "  PaddleOCR installed."
     fi
 
     # --- Extension Manager (Flatpak) ---
