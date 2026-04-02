@@ -67,24 +67,18 @@ mod_apps() {
         echo "  Kdenlive installed."
     fi
 
-    # --- Jellyfin (dnf — no auto-start, manual launch via desktop shortcut) ---
+    # --- Jellyfin (via RPM Fusion — no auto-start, manual launch via desktop shortcut) ---
     if rpm -q jellyfin &>/dev/null; then
         echo "  Jellyfin is already installed, skipping."
     else
         echo "  Installing Jellyfin..."
-        # Add Jellyfin repo and GPG key if not already present
-        if [[ ! -f /etc/yum.repos.d/jellyfin.repo ]]; then
-            sudo rpm --import https://repo.jellyfin.org/jellyfin_team.gpg.key
-            sudo tee /etc/yum.repos.d/jellyfin.repo <<'REPO'
-[jellyfin]
-name=Jellyfin
-baseurl=https://repo.jellyfin.org/fedora/latest/$basearch
-gpgcheck=1
-gpgkey=https://repo.jellyfin.org/jellyfin_team.gpg.key
-enabled=1
-REPO
+        # Enable RPM Fusion repos if not already present (required for Jellyfin on Fedora)
+        if ! rpm -q rpmfusion-free-release &>/dev/null; then
+            sudo dnf install -y \
+                "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
+                "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
         fi
-        sudo dnf install -y jellyfin jellyfin-web jellyfin-server
+        sudo dnf install -y jellyfin
         # Ensure it does NOT start on boot
         sudo systemctl disable jellyfin 2>/dev/null || true
         echo "  Jellyfin installed (manual start only)."
