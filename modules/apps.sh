@@ -72,6 +72,18 @@ mod_apps() {
         echo "  Jellyfin is already installed, skipping."
     else
         echo "  Installing Jellyfin..."
+        # Add Jellyfin repo and GPG key if not already present
+        if [[ ! -f /etc/yum.repos.d/jellyfin.repo ]]; then
+            sudo rpm --import https://repo.jellyfin.org/jellyfin_team.gpg.key
+            sudo tee /etc/yum.repos.d/jellyfin.repo <<'REPO'
+[jellyfin]
+name=Jellyfin
+baseurl=https://repo.jellyfin.org/fedora/latest/$basearch
+gpgcheck=1
+gpgkey=https://repo.jellyfin.org/jellyfin_team.gpg.key
+enabled=1
+REPO
+        fi
         sudo dnf install -y jellyfin jellyfin-web jellyfin-server
         # Ensure it does NOT start on boot
         sudo systemctl disable jellyfin 2>/dev/null || true
