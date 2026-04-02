@@ -72,13 +72,16 @@ mod_apps() {
         echo "  Jellyfin is already installed, skipping."
     else
         echo "  Installing Jellyfin..."
+        # Remove stale Jellyfin repo if left over from a previous install attempt
+        sudo rm -f /etc/yum.repos.d/jellyfin.repo
         # Enable RPM Fusion repos if not already present (required for Jellyfin on Fedora)
         if ! rpm -q rpmfusion-free-release &>/dev/null; then
             sudo dnf install -y \
                 "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
                 "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
         fi
-        sudo dnf install -y jellyfin
+        # RPM Fusion ffmpeg replaces Fedora's ffmpeg-free; --allowerasing allows the swap
+        sudo dnf install -y --allowerasing jellyfin
         # Ensure it does NOT start on boot
         sudo systemctl disable jellyfin 2>/dev/null || true
         echo "  Jellyfin installed (manual start only)."
