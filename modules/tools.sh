@@ -52,7 +52,8 @@ mod_tools() {
         echo "  PaddleOCR is already installed, skipping."
     else
         echo "  Installing PaddleOCR via pip..."
-        pip3 install --user paddlepaddle paddleocr
+        sudo dnf install -y python3-pip
+        python3 -m pip install --user paddlepaddle paddleocr
         echo "  PaddleOCR installed."
     fi
 
