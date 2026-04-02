@@ -4,6 +4,10 @@ mod_tauri() {
 
     # --- Tauri 2 system libraries (Fedora) ---
     local -a TAURI_DEPS=(
+        gcc                      # C compiler / linker (required by Rust)
+        gcc-c++                  # C++ compiler (some crates need it)
+        make                     # build tool
+        pkg-config               # find library flags
         webkit2gtk4.1-devel      # WebView for Tauri 2
         openssl-devel            # TLS / crypto
         curl                     # HTTP client
