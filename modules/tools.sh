@@ -47,14 +47,50 @@ mod_tools() {
         echo "  Tesseract English language pack installed."
     fi
 
-    # --- PaddleOCR (best accuracy OCR engine) ---
-    if python3 -c "import paddleocr" &>/dev/null 2>&1; then
+    # --- PaddleOCR (best accuracy OCR engine, needs Python ≤ 3.12) ---
+    local PADDLE_VENV="$HOME/.local/share/paddleocr-venv"
+    if [[ -x "$PADDLE_VENV/bin/python" ]] && "$PADDLE_VENV/bin/python" -c "import paddleocr" &>/dev/null 2>&1; then
         echo "  PaddleOCR is already installed, skipping."
     else
-        echo "  Installing PaddleOCR via pip..."
-        sudo dnf install -y python3-pip
-        python3 -m pip install --user paddlepaddle paddleocr
-        echo "  PaddleOCR installed."
+        echo "  Installing PaddleOCR..."
+        # PaddlePaddle requires Python ≤ 3.12 — find a compatible version
+        local py_bin=""
+        for candidate in python3.12 python3.11 python3.10; do
+            if command -v "$candidate" &>/dev/null; then
+                py_bin="$candidate"
+                break
+            fi
+        done
+
+        if [[ -z "$py_bin" ]]; then
+            echo "  System Python is too new for PaddlePaddle. Installing Python 3.12..."
+            sudo dnf install -y python3.12 2>/dev/null || true
+            if command -v python3.12 &>/dev/null; then
+                py_bin="python3.12"
+            else
+                echo "  ⚠ Could not install Python 3.12. Skipping PaddleOCR."
+                echo "    (PaddlePaddle does not yet support your Python version)"
+            fi
+        fi
+
+        if [[ -n "$py_bin" ]]; then
+            echo "  Using $py_bin for PaddleOCR virtualenv..."
+            "$py_bin" -m venv "$PADDLE_VENV"
+            "$PADDLE_VENV/bin/pip" install --upgrade pip
+            if "$PADDLE_VENV/bin/pip" install paddlepaddle paddleocr; then
+                # Create a wrapper so 'paddleocr' is on PATH
+                mkdir -p "$HOME/.local/bin"
+                cat > "$HOME/.local/bin/paddleocr" <<'WRAPPER'
+#!/usr/bin/env bash
+exec "$HOME/.local/share/paddleocr-venv/bin/paddleocr" "$@"
+WRAPPER
+                chmod +x "$HOME/.local/bin/paddleocr"
+                echo "  PaddleOCR installed (venv: $PADDLE_VENV)."
+            else
+                echo "  ⚠ PaddleOCR installation failed. Skipping."
+                rm -rf "$PADDLE_VENV"
+            fi
+        fi
     fi
 
     # --- Extension Manager (Flatpak) ---

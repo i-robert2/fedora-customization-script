@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops monitoring ollama openwebui searxng comfyui tts continue)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops monitoring ollama openwebui searxng comfyui tts continue tauri)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"
@@ -47,6 +47,7 @@ declare -A MODULE_DESC=(
     [comfyui]="Install ComfyUI + AnimateDiff (image & video generation)"
     [tts]="Install TTS engines (Piper, Kokoro, F5-TTS)"
     [continue]="Install VSCodium + Continue AI coding extension"
+    [tauri]="Install Rust, Node.js & Tauri 2 dev environment"
 )
 
 # ── Source all module files ───────────────────────────────────────────────

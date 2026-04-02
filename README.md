@@ -63,6 +63,7 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 26 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
 | 27 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
 | 28 | `continue` | VSCodium + Continue AI coding extension |
+| 29 | `tauri` | Rust, Node.js & Tauri 2 dev environment |
 
 ---
 
@@ -1227,6 +1228,33 @@ ollama pull codellama:13b   # pull a new model
 
 </details>
 
+<details>
+<summary><strong>29. Tauri — Rust, Node.js & Tauri 2 Dev Environment</strong></summary>
+
+```bash
+./setup.sh tauri
+```
+
+Installs everything needed to build [Tauri 2](https://v2.tauri.app/) desktop apps on Fedora.
+
+| What it does | Details |
+|---|---|
+| Tauri system deps | `webkit2gtk4.1-devel`, `openssl-devel`, `gtk3-devel`, `libsoup3-devel`, `javascriptcoregtk4.1-devel` + more |
+| Rust toolchain | Via [rustup](https://rustup.rs/) (rustc + cargo) |
+| Node.js + npm | Via dnf (for frontend build) |
+| Tauri CLI | `cargo install tauri-cli` |
+
+**After install:**
+
+```bash
+cd ~/your-project
+npm install
+npm run tauri dev      # run in dev mode
+npm run tauri build    # produce a release binary
+```
+
+</details>
+
 ### AI Modules — Ports
 
 | Service | Port | URL |
@@ -1440,6 +1468,7 @@ modules/
   comfyui.sh                    # ComfyUI + AnimateDiff (image/video)
   tts.sh                        # Text-to-speech (Piper, Kokoro, F5-TTS)
   continue.sh                   # VSCodium + Continue AI extension
+  tauri.sh                      # Rust, Node.js & Tauri 2 dev environment
 setup-runner.sh                 # One-time GitHub Actions runner setup
 .github/workflows/deploy.yml   # CI/CD pipeline
 ```
