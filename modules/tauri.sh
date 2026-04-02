@@ -28,7 +28,7 @@ mod_tauri() {
 
     local to_install=()
     for pkg in "${TAURI_DEPS[@]}"; do
-        if rpm -q "${pkg%-devel}" &>/dev/null || rpm -q "$pkg" &>/dev/null; then
+        if rpm -q "$pkg" &>/dev/null; then
             echo "  $pkg already installed, skipping."
         else
             to_install+=("$pkg")
