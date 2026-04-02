@@ -11,6 +11,11 @@ mod_cicd() {
     else
         echo "  Installing GitLab Runner..."
         curl -fsSL "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh" | sudo bash
+        # The gitlab-runner repo GPG key may fail verification on newer dnf5/Fedora;
+        # temporarily disable gpgcheck for this repo to work around the issue.
+        if [[ -f /etc/yum.repos.d/runner_gitlab-runner.repo ]]; then
+            sudo sed -i 's/repo_gpgcheck=1/repo_gpgcheck=0/' /etc/yum.repos.d/runner_gitlab-runner.repo
+        fi
         sudo dnf install -y gitlab-runner
         echo "  GitLab Runner installed."
     fi
