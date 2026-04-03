@@ -43,27 +43,26 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 6 | `prompt` | Alien beam bash prompt with emoji + colors |
 | 7 | `greeting` | UFO pixel-art landing animation on terminal open |
 | 8 | `tools` | CLI tools + OCR (Tesseract, PaddleOCR) + ExifTool + Extension Manager |
-| 9 | `rofi` | Rofi app launcher + Catppuccin Mocha theme (`Super+D`) |
-| 10 | `power` | Sleep after 3h, auto-shutdown after 4h idle |
-| 11 | `dock` | Dash to Dock — auto-hide, bottom, no Show Apps button |
-| 12 | `windowfx` | Pixelate animation on window open/close (280ms) |
-| 13 | `wallpaper` | Solid black 4K wallpaper |
-| 14 | `userpic` | GitHub profile picture as user avatar (GDM + desktop) |
-| 15 | `tiling` | Tiling with gaps, quarter tiles, white borders |
-| 16 | `topbar` | Fedora logo menu, Vitals, Weather, centered clock, tray |
-| 17 | `appgrid` | Organize app grid into 5 category folders |
-| 18 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, KVM/QEMU |
-| 19 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS (manual start) |
-| 20 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
-| 21 | `vmops` | SSH helpers + Ansible playbooks for managing KVM/QEMU VMs |
-| 22 | `monitoring` | Prometheus + Grafana VM monitoring (Podman, manual start) |
-| 23 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
-| 24 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
-| 25 | `searxng` | SearXNG — self-hosted search engine for AI web search |
-| 26 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
-| 27 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
-| 28 | `continue` | VSCodium + Continue AI coding extension |
-| 29 | `tauri` | Rust, Node.js & Tauri 2 dev environment |
+| 9 | `power` | Sleep after 3h, auto-shutdown after 4h idle |
+| 10 | `dock` | Dash to Dock — auto-hide, bottom, no Show Apps button |
+| 11 | `windowfx` | Pixelate animation on window open/close (280ms) |
+| 12 | `wallpaper` | Solid black 4K wallpaper |
+| 13 | `userpic` | GitHub profile picture as user avatar (GDM + desktop) |
+| 14 | `tiling` | Tiling with gaps, quarter tiles, white borders |
+| 15 | `topbar` | Fedora logo menu, Vitals, Weather, centered clock, tray, Super+A App Grid |
+| 16 | `appgrid` | Organize app grid into 5 category folders |
+| 17 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, KVM/QEMU |
+| 18 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS (manual start) |
+| 19 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
+| 20 | `vmops` | SSH helpers + Ansible playbooks for managing KVM/QEMU VMs |
+| 21 | `monitoring` | Prometheus + Grafana VM monitoring (Podman, manual start) |
+| 22 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
+| 23 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
+| 24 | `searxng` | SearXNG — self-hosted search engine for AI web search |
+| 25 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
+| 26 | `tts` | Text-to-speech engines (Piper, Kokoro, F5-TTS) |
+| 27 | `continue` | VSCodium + Continue AI coding extension |
+| 28 | `tauri` | Rust, Node.js & Tauri 2 dev environment |
 
 ---
 
@@ -269,10 +268,33 @@ exiftool -all= *.jpg               # batch strip
 exiftool photo.jpg                 # view all metadata
 ```
 
+**File search with fd + fzf:**
+
+```bash
+# fd — fast find replacement (searches current directory recursively)
+fd readme                          # find files matching "readme"
+fd .sh                             # find all .sh files
+fd -t f setup                      # find only files (not directories)
+fd -t d config                     # find only directories
+fd .conf /etc                      # search in a specific directory
+fd --changed-within 1h             # files modified in the last hour
+
+# fzf — interactive fuzzy finder
+fzf                                # browse all files interactively
+fd | fzf                           # fd + fzf combo (fast fuzzy file search)
+fzf --preview 'cat {}'             # preview file contents while searching
+history | fzf                      # search command history interactively
+
+# Power combos
+nano $(fd -t f | fzf)              # find a file, then open it in nano
+cd $(fd -t d | fzf)                # find a directory, then cd into it
+nano $(rg -l "TODO" | fzf)         # find files containing "TODO", pick one to edit
+```
+
 </details>
 
 <details>
-<summary><strong>🎨 Desktop Appearance</strong> — Theme, wallpaper, top bar, dock, tiling, app grid, rofi</summary>
+<summary><strong>🎨 Desktop Appearance</strong> — Theme, wallpaper, top bar, dock, tiling, app grid</summary>
 
 ### Theme & Wallpaper
 
@@ -307,6 +329,11 @@ exiftool photo.jpg                 # view all metadata
 | Center | Clock with date + weekday |
 | Right | AppIndicator tray |
 | Right | System indicators |
+
+| Shortcut | Action |
+|---|---|
+| `Super` | Open Overview (search + workspaces) |
+| `Super+A` | Open App Grid (organized folders) |
 
 - Top bar is **semi-transparent** (`rgba(40,40,40,0.7)`)
 - Activities button is hidden
@@ -353,18 +380,6 @@ Powered by Tiling Assistant with **12px symmetric gaps** on all sides.
 | **Media** | Videos, Music, Photos, Screenshot tools |
 | **System** | Settings, System Monitor, Disks, Tweaks, Logs |
 | **Accessories** | Text Editor, Calculator, Files, Archive Manager |
-
-### Rofi Launcher
-
-<!-- Add a screenshot of rofi here -->
-<!-- ![Rofi](screenshots/rofi.png) -->
-
-| Setting | Value |
-|---|---|
-| Shortcut | `Super+D` |
-| Theme | Catppuccin Mocha |
-| Font | JetBrainsMono Nerd Font 12 |
-| Modes | drun, run, window |
 
 </details>
 
@@ -1321,7 +1336,7 @@ To add your own screenshots, create a `screenshots/` directory and capture:
 | `topbar.png` | Top bar showing logo, vitals, weather, clock |
 | `dock.png` | Dock visible at the bottom |
 | `tiling.png` | 2-4 windows tiled with gaps and white borders |
-| `rofi.png` | Rofi launcher open with Catppuccin theme |
+| `rofi.png` | *(removed — rofi replaced by GNOME built-in search)* |
 | `gitlab.png` | GitLab CE login or project page |
 
 Then uncomment the `![...](screenshots/...)` lines in this README.
@@ -1417,8 +1432,6 @@ tmux-dev [directory]         # Dev layout (3 windows)
 | `~/.tmux/plugins/` | TPM and installed plugins |
 | `~/.local/bin/tmux-dev` | Dev session layout script |
 | `~/.bashrc` | Prompt customization + tmux auto-attach |
-| `~/.config/rofi/config.rasi` | Rofi configuration |
-| `~/.local/share/rofi/themes/catppuccin-mocha.rasi` | Rofi Catppuccin theme |
 | `/etc/dconf/db/gdm.d/99-capslock-fix` | GDM keyboard settings |
 | `/etc/dconf/profile/gdm` | GDM dconf profile |
 
@@ -1452,7 +1465,6 @@ modules/
   prompt.sh                     # Alien beam bash prompt
   greeting.sh                   # UFO landing animation
   tools.sh                      # CLI tools + Extension Manager + User Themes
-  rofi.sh                       # Rofi app launcher + Catppuccin theme
   power.sh                      # Sleep/shutdown on inactivity
   dock.sh                       # Dash to Dock (auto-hide, bottom)
   windowfx.sh                   # Pixelate open/close animations

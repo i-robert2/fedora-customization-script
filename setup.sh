@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
-ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools rofi power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops monitoring ollama openwebui searxng comfyui tts continue tauri flashlocal)
+ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops monitoring ollama openwebui searxng comfyui tts continue tauri flashlocal)
 
 declare -A MODULE_DESC=(
     [ghostty]="Install Ghostty terminal"

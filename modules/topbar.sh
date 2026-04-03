@@ -67,6 +67,10 @@ mod_topbar() {
     dconf write "$LOGO_PATH/hide-icon-shadow" "true"
     echo "  Fedora logo menu configured (replaces Activities button)."
 
+    # ── 1b. Super+A opens the App Grid ──
+    gsettings set org.gnome.shell.keybindings toggle-application-view "['<Super>a']"
+    echo "  Super+A bound to App Grid."
+
     # ── 2. Install Vitals (system monitors on top bar) ──
     echo "  Installing Vitals..."
     _install_ext "gnome-shell-extension-vitals" "Vitals@CoreCoding.com"

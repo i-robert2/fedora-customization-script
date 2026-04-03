@@ -118,9 +118,7 @@ mod_appgrid() {
         "['org.gnome.TextEditor.desktop', \
           'org.gnome.Calculator.desktop', \
           'org.gnome.FileRoller.desktop', \
-          'org.gnome.Nautilus.desktop', \
-          'rofi.desktop', \
-          'rofi-theme-selector.desktop']"
+          'org.gnome.Nautilus.desktop']"
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Accessories/" categories \
         "['Utility', 'TextEditor', 'Archiving', 'Calculator', 'Compression', \
           'FileManager', 'FileTools', 'Core', 'Clock', 'GNOME']"
