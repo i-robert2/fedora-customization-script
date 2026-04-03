@@ -51,7 +51,7 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 14 | `tiling` | Tiling with gaps, quarter tiles, white borders |
 | 15 | `topbar` | Fedora logo menu, Vitals, Weather, centered clock, tray, Super+A App Grid |
 | 16 | `appgrid` | Organize app grid into 5 category folders |
-| 17 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, KVM/QEMU |
+| 17 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, Reactive Resume, KVM/QEMU |
 | 18 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS (manual start) |
 | 19 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
 | 20 | `vmops` | SSH helpers + Ansible playbooks for managing KVM/QEMU VMs |
@@ -471,6 +471,34 @@ virsh list --all # CLI to list all VMs
 ```
 
 The `libvirtd` service is enabled at boot. Your user is added to the `libvirt` group for passwordless VM management.
+
+### Reactive Resume — Self-Hosted Resume Builder
+
+A free, open-source resume builder running locally via Podman Compose. No auto-start — launch from the desktop icon or CLI.
+
+| Setting | Value |
+|---|---|
+| URL | `http://localhost:3002` |
+| Stack | PostgreSQL + Browserless + SeaweedFS + Reactive Resume |
+| Data | `~/reactive-resume/` + Podman volumes |
+| First-time | Images are pulled on first start (~1-2 min) |
+
+**Start/stop:**
+
+```bash
+reactive-resume start     # start all containers + open browser
+reactive-resume stop      # stop all containers
+reactive-resume status    # check container status
+```
+
+Or click the **Reactive Resume** desktop icon to start and open the browser.
+
+**First-time setup:**
+
+1. Start the app: `reactive-resume start`
+2. Open `http://localhost:3002`
+3. Create an account (first user is local, no email verification needed)
+4. Start building your resume
 
 ### GitLab CE (Self-Hosted)
 

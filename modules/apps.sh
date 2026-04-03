@@ -128,4 +128,78 @@ EOF
         sudo usermod -aG libvirt "$USER"
         echo "  NOTE: Log out and back in for group membership to take effect."
     fi
+
+    # --- Reactive Resume (self-hosted, Podman Compose) ---
+    if ! command -v podman-compose &>/dev/null; then
+        echo "  Installing podman-compose..."
+        sudo dnf install -y podman-compose
+    fi
+
+    local RR_DIR="$HOME/reactive-resume"
+    local SCRIPT_DIR
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+    if [[ -f "$RR_DIR/compose.yml" ]]; then
+        echo "  Reactive Resume compose file already exists, skipping."
+    else
+        echo "  Setting up Reactive Resume..."
+        mkdir -p "$RR_DIR"
+        cp "$SCRIPT_DIR/templates/reactive-resume-compose.yml" "$RR_DIR/compose.yml"
+
+        # Generate a random secret for auth
+        local AUTH_SECRET
+        AUTH_SECRET=$(openssl rand -hex 32)
+        sed -i "s/change-me-to-a-secure-secret-key-in-production/$AUTH_SECRET/" "$RR_DIR/compose.yml"
+
+        echo "  Reactive Resume configured at $RR_DIR"
+    fi
+
+    # --- Reactive Resume start/stop script ---
+    local RR_SCRIPT="$HOME/.local/bin/reactive-resume"
+    mkdir -p "$HOME/.local/bin"
+    cat > "$RR_SCRIPT" <<'SCRIPT'
+#!/usr/bin/env bash
+RR_DIR="$HOME/reactive-resume"
+case "${1:-}" in
+    start)
+        echo "Starting Reactive Resume..."
+        podman-compose -f "$RR_DIR/compose.yml" up -d
+        echo "Reactive Resume starting at http://localhost:3002"
+        echo "  (may take 30-60 seconds on first run to pull images)"
+        ;;
+    stop)
+        echo "Stopping Reactive Resume..."
+        podman-compose -f "$RR_DIR/compose.yml" down
+        echo "Reactive Resume stopped."
+        ;;
+    status)
+        podman-compose -f "$RR_DIR/compose.yml" ps
+        ;;
+    *)
+        echo "Usage: reactive-resume {start|stop|status}"
+        exit 1
+        ;;
+esac
+SCRIPT
+    chmod +x "$RR_SCRIPT"
+
+    # --- Reactive Resume desktop launcher ---
+    local RR_DESKTOP="$HOME/.local/share/applications/reactive-resume.desktop"
+    if [[ -f "$RR_DESKTOP" ]]; then
+        echo "  Reactive Resume desktop launcher already exists, skipping."
+    else
+        echo "  Creating Reactive Resume desktop launcher..."
+        mkdir -p "$HOME/.local/share/applications"
+        cat > "$RR_DESKTOP" <<'EOF'
+[Desktop Entry]
+Name=Reactive Resume
+Comment=Self-hosted resume builder
+Exec=bash -c '$HOME/.local/bin/reactive-resume start; sleep 5; xdg-open http://localhost:3002'
+Icon=accessories-text-editor
+Terminal=false
+Type=Application
+Categories=Office;
+EOF
+        echo "  Reactive Resume desktop launcher created."
+    fi
 }
