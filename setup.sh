@@ -14,6 +14,28 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ── Hardware detection ────────────────────────────────────────────────────
+# Detect once, exported for all modules to use. No module needs its own check.
+HW_HAS_NVIDIA=false
+HW_VRAM_GB=0
+HW_RAM_GB=0
+HW_CPU=""
+
+# NVIDIA GPU
+if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+    HW_HAS_NVIDIA=true
+    # Extract VRAM in MiB, convert to GB (first GPU only)
+    HW_VRAM_GB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 | awk '{printf "%d", $1/1024}')
+fi
+
+# Total system RAM in GB
+HW_RAM_GB=$(awk '/MemTotal/ {printf "%d", $2/1024/1024}' /proc/meminfo 2>/dev/null || echo 0)
+
+# CPU model (short name for display)
+HW_CPU=$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | sed 's/.*: //' || echo "unknown")
+
+export HW_HAS_NVIDIA HW_VRAM_GB HW_RAM_GB HW_CPU
+
 # ── Module registry ───────────────────────────────────────────────────────
 # Order matters: this is the execution order when running all modules.
 ALL_MODULES=(ghostty font keybinding capslock tmux prompt greeting tools power dock windowfx wallpaper userpic tiling topbar appgrid apps gitlab cicd vmops monitoring ollama openwebui searxng comfyui tts continue tauri flashlocal)
@@ -94,6 +116,15 @@ run_module() {
 # ── Main ──────────────────────────────────────────────────────────────────
 main() {
     echo "=== Fedora Workstation Setup ==="
+    echo ""
+    echo "Hardware detected:"
+    echo "  CPU:  $HW_CPU"
+    echo "  RAM:  ${HW_RAM_GB} GB"
+    if [[ "$HW_HAS_NVIDIA" == true ]]; then
+        echo "  GPU:  NVIDIA (${HW_VRAM_GB} GB VRAM) — CUDA-accelerated models enabled"
+    else
+        echo "  GPU:  No NVIDIA GPU — CPU-only mode"
+    fi
     echo ""
 
     if [[ $# -eq 0 ]]; then

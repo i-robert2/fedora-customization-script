@@ -17,11 +17,9 @@ mod_ollama() {
         sudo systemctl enable --now ollama
     fi
 
-    # --- Detect GPU for model selection ---
-    local has_nvidia=false
-    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
-        has_nvidia=true
-        echo "  NVIDIA GPU detected — models will offload to GPU."
+    # --- GPU detection (from setup.sh) ---
+    if [[ "$HW_HAS_NVIDIA" == true ]]; then
+        echo "  NVIDIA GPU detected (${HW_VRAM_GB} GB VRAM) — models will offload to GPU."
     else
         echo "  No NVIDIA GPU detected — models will run on CPU."
     fi
@@ -75,7 +73,7 @@ mod_ollama() {
     fi
 
     # On NVIDIA: also pull the larger models
-    if [[ "$has_nvidia" == true ]]; then
+    if [[ "$HW_HAS_NVIDIA" == true ]]; then
         if ollama list | grep -q 'qwen2.5:32b'; then
             echo "  qwen2.5:32b already pulled, skipping."
         else

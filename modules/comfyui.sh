@@ -35,7 +35,7 @@ mod_comfyui() {
     source "$COMFYUI_DIR/venv/bin/activate"
 
     # Detect GPU and install appropriate PyTorch
-    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+    if [[ "$HW_HAS_NVIDIA" == true ]]; then
         echo "  NVIDIA GPU detected — installing PyTorch with CUDA..."
         pip install --quiet --upgrade \
             torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
@@ -79,7 +79,7 @@ mod_comfyui() {
     fi
 
     # On NVIDIA: also download SDXL for higher quality
-    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+    if [[ "$HW_HAS_NVIDIA" == true ]]; then
         if [[ -f "$models_dir/sd_xl_base_1.0.safetensors" ]]; then
             echo "  SDXL checkpoint already downloaded."
         else
