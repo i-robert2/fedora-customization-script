@@ -43,7 +43,7 @@ mod_tts() {
     fi
 
     # --- Install F5-TTS on NVIDIA systems (voice cloning) ---
-    if [[ "$HW_HAS_NVIDIA" == true ]]; then
+    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
         if pip show f5-tts &>/dev/null 2>&1; then
             echo "  F5-TTS is already installed, skipping."
         else
