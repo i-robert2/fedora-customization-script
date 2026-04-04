@@ -8,6 +8,12 @@ mod_gitlab() {
         sudo dnf install -y podman
     fi
 
+    # --- Ensure slirp4netns is available (rootless container networking) ---
+    if ! command -v slirp4netns &>/dev/null; then
+        echo "  Installing slirp4netns (rootless networking)..."
+        sudo dnf install -y slirp4netns
+    fi
+
     # --- GitLab CE container ---
     local GITLAB_HOME="$HOME/gitlab"
     local GITLAB_HTTPS_PORT="8929"

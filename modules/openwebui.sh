@@ -8,6 +8,12 @@ mod_openwebui() {
         sudo dnf install -y podman
     fi
 
+    # --- Ensure slirp4netns is available (rootless container networking) ---
+    if ! command -v slirp4netns &>/dev/null; then
+        echo "  Installing slirp4netns (rootless networking)..."
+        sudo dnf install -y slirp4netns
+    fi
+
     # --- Run Open WebUI container ---
     if podman container exists open-webui 2>/dev/null; then
         echo "  Open WebUI container already exists."
