@@ -56,7 +56,7 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 19 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
 | 20 | `vmops` | SSH helpers + Ansible playbooks for managing KVM/QEMU VMs |
 | 21 | `monitoring` | Prometheus + Grafana VM monitoring (Podman, manual start) |
-| 22 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4) |
+| 22 | `ollama` | Ollama + AI models (Qwen 2.5 Coder, Qwen 2.5, DeepSeek R1, Phi-4, Gemma 4) |
 | 23 | `openwebui` | Open WebUI — ChatGPT-like interface for local AI |
 | 24 | `searxng` | SearXNG — self-hosted search engine for AI web search |
 | 25 | `comfyui` | ComfyUI + AnimateDiff — image & video generation |
@@ -970,16 +970,50 @@ The sample pipeline at [templates/gitlab-ci-deploy.yml](templates/gitlab-ci-depl
 <details>
 <summary><strong>🤖 Local AI Setup</strong> — Ollama, Open WebUI, SearXNG, ComfyUI, TTS, Continue</summary>
 
-Six modules that set up a fully offline AI stack for coding, text, image/video generation, voice synthesis, and web search. All modules auto-detect hardware — on NVIDIA systems they install CUDA-accelerated versions and pull larger models.
+Six modules that set up a fully offline AI stack for coding, text, image/video generation, voice synthesis, and web search. All modules auto-detect hardware — on NVIDIA systems they install CUDA-accelerated versions and pull larger models (including Gemma 4 26B MoE and 31B Dense).
 
 ### Hardware Support
 
-| Component | AMD Laptop (CPU only) | Intel/NVIDIA PC |
+| Component | Laptop — Ryzen 7 8845HS / Radeon 780M / 32 GB DDR5 | PC — i9-12900KS / RTX 3060 12 GB / 32 GB DDR5 |
 |---|---|---|
-| LLM inference | CPU (~10-15 tok/s @ 14B) | CUDA GPU offload (~30-40 tok/s @ 14B) |
+| LLM inference (14B) | CPU, ~12-18 tok/s | CUDA GPU, ~35-45 tok/s |
+| LLM inference (26B–32B) | CPU, ~4-8 tok/s (usable but slow) | Partial GPU offload, ~10-22 tok/s |
 | Image generation | CPU, SD 1.5 (~90 sec/image) | CUDA, SDXL (~10 sec/image) |
 | Video generation | CPU, AnimateDiff (~20 min/clip) | CUDA, AnimateDiff (~2 min/clip) |
 | TTS | Piper + Kokoro (real-time) | Piper + Kokoro + F5-TTS (real-time) |
+
+#### Laptop — Model Capabilities (CPU inference, 32 GB RAM)
+
+The Radeon 780M is an integrated GPU sharing system RAM — Ollama runs models on CPU. The 8845HS (8-core/16-thread Zen 4) with fast DDR5 is one of the better CPUs for local inference. ~28-29 GB available after OS overhead.
+
+| Model | Size | RAM Used | Speed | Daily use? |
+|---|---|---|---|---|
+| `qwen2.5-coder:14b` | 9 GB | 9/29 GB | ~12-18 tok/s | ✅ Primary coding model |
+| `gemma4:e4b` | 9.6 GB | 9.6/29 GB | ~12-18 tok/s | ✅ Best all-rounder (128K ctx, vision, thinking) |
+| `qwen2.5:14b` | 9 GB | 9/29 GB | ~12-18 tok/s | ✅ Solid for general text |
+| `deepseek-r1:14b` | 9 GB | 9/29 GB | ~12-18 tok/s | ✅ Best for step-by-step reasoning |
+| `phi4:14b` | 9 GB | 9/29 GB | ~12-18 tok/s | ✅ Good for summarization |
+| `gemma4:26b` | 18 GB | 18/29 GB | ~5-8 tok/s | ⚠️ Works but sluggish — close other apps |
+| `gemma4:31b` | 20 GB | 20/29 GB | ~4-6 tok/s | ⚠️ Usable but slow — not for daily use |
+
+You can load two 9 GB models simultaneously (e.g., Qwen Coder for autocomplete + Gemma E4B for chat). Disk needed: ~46 GB for the 5 pulled models.
+
+#### PC — Model Capabilities (RTX 3060 12 GB VRAM + 32 GB RAM)
+
+Models ≤12 GB fit entirely in VRAM for maximum speed. Larger models use partial GPU offload (12 GB VRAM + rest in system RAM).
+
+| Model | Size | Fits in 12 GB VRAM? | Speed | Daily use? |
+|---|---|---|---|---|
+| `qwen2.5-coder:14b` | 9 GB | ✅ Fully on GPU | ~35-45 tok/s | ✅ Blazing fast |
+| `gemma4:e4b` | 9.6 GB | ✅ Fully on GPU | ~30-40 tok/s | ✅ Blazing fast |
+| `qwen2.5:14b` | 9 GB | ✅ Fully on GPU | ~35-45 tok/s | ✅ Blazing fast |
+| `deepseek-r1:14b` | 9 GB | ✅ Fully on GPU | ~35-45 tok/s | ✅ Blazing fast |
+| `phi4:14b` | 9 GB | ✅ Fully on GPU | ~35-45 tok/s | ✅ Blazing fast |
+| `gemma4:26b` | 18 GB | ⚡ Partial (12+6) | ~15-22 tok/s | ✅ Good — MoE = only 3.8B active params |
+| `gemma4:31b` | 20 GB | ⚡ Partial (12+8) | ~10-15 tok/s | ✅ Noticeably slower but highest quality |
+| `qwen2.5:32b` | 20 GB | ⚡ Partial (12+8) | ~10-15 tok/s | ✅ Solid, but Gemma 31B beats it on benchmarks |
+
+The 26B MoE is the best "stretch" model — its architecture means partial offload works better than dense models. Disk needed: ~104 GB for all 8 models.
 
 ### Prerequisites
 
@@ -1019,28 +1053,61 @@ Installs [Ollama](https://ollama.com/) and pulls quantized LLM models for local 
 | Pulls general model | `qwen2.5:14b` (~9 GB) |
 | Pulls reasoning model | `deepseek-r1:14b` (~9 GB) |
 | Pulls summarization model | `phi4:14b` (~9 GB) |
+| Pulls multimodal model | `gemma4:e4b` (~9.6 GB) |
+| Pulls MoE model (NVIDIA only) | `gemma4:26b` (~18 GB) |
+| Pulls dense flagship (NVIDIA only) | `gemma4:31b` (~20 GB) |
 | Pulls large model (NVIDIA only) | `qwen2.5:32b` (~20 GB) |
 | API endpoint | `http://localhost:11434` |
 
-**Which model to use when:**
+#### Model Ranking — Which Model to Use
 
-| Model | Best for |
-|---|---|
-| `qwen2.5-coder:14b` | Writing code, completions, refactoring |
-| `qwen2.5:14b` | General chat, translation, content writing |
-| `deepseek-r1:14b` | Complex debugging, reasoning, step-by-step analysis |
-| `phi4:14b` | Summarizing documents, following detailed instructions |
-| `qwen2.5:32b` (NVIDIA) | Best overall quality, slower |
+All models run fully offline via Ollama. No data leaves your machine. Gemma 4 models are licensed under Apache 2.0; others have their own permissive open licenses.
+
+**Tier 1 — Best in class (pick one per task)**
+
+| Rank | Model | Size | Best for | Why pick this one |
+|---|---|---|---|---|
+| 🥇 | `gemma4:31b` | 20 GB | **Everything** (NVIDIA only) | Highest benchmarks across the board — MMLU Pro 85%, AIME 89%, 256K context, vision, thinking mode. The best local model if your GPU can fit it. |
+| 🥇 | `qwen2.5-coder:14b` | 9 GB | **Code** (all systems) | Purpose-built for coding — autocomplete, refactoring, generation. HumanEval ~80%. No other 14B model matches it for code. |
+| 🥇 | `gemma4:26b` | 18 GB | **Reasoning + multimodal** (NVIDIA) | MoE with only 3.8B active params = fast despite 26B total. 256K context, vision, thinking mode. GPQA 82%, LiveCodeBench 77%. |
+
+**Tier 2 — Strong alternatives**
+
+| Rank | Model | Size | Best for | Why pick this one |
+|---|---|---|---|---|
+| 🥈 | `gemma4:e4b` | 9.6 GB | **General + vision + audio** (all systems) | Best all-rounder at this size — 128K context, image+audio input, thinking mode. Replaces separate models for text, vision, and summarization. |
+| 🥈 | `deepseek-r1:14b` | 9 GB | **Chain-of-thought reasoning** (all systems) | Specialized reasoning model — shows step-by-step thinking. Better than Gemma E4B for pure logic puzzles and debugging on CPU-only systems. |
+
+**Tier 3 — Solid options**
+
+| Rank | Model | Size | Best for | Why pick this one |
+|---|---|---|---|---|
+| 🥉 | `qwen2.5:14b` | 9 GB | **General text** (all systems) | Reliable for chat, translation, writing. Slightly higher MMLU than Gemma E4B (~79 vs ~69) but lacks vision/audio and has shorter context (32K). |
+| 🥉 | `phi4:14b` | 9 GB | **Instruction following** (all systems) | Good at following detailed instructions and summarizing. If Gemma E4B's 128K context isn't enough reason to switch, Phi-4 is still solid. |
+| 🥉 | `qwen2.5:32b` | 20 GB | **Large text** (NVIDIA only) | Strong general-purpose 32B. However, Gemma 4 31B matches or beats it on every benchmark at the same size. |
+
+**Quick decision guide:**
+
+| Your hardware | Your task | Use this model |
+|---|---|---|
+| Any | Writing code, autocomplete | `qwen2.5-coder:14b` |
+| Any | General chat, vision, summarization | `gemma4:e4b` |
+| Any | Hard debugging, step-by-step reasoning | `deepseek-r1:14b` |
+| NVIDIA GPU | Best overall quality | `gemma4:31b` |
+| NVIDIA GPU | Fast reasoning + vision | `gemma4:26b` (MoE — fast inference) |
 
 **Usage:**
 
 ```bash
 ollama run qwen2.5-coder:14b    # coding
-ollama run qwen2.5:14b          # general chat
-ollama run deepseek-r1:14b      # hard reasoning / debugging
-ollama run phi4:14b             # summarization / instructions
-ollama list                     # see all downloaded models
-ollama ps                       # see currently loaded models
+ollama run gemma4:e4b            # general chat, vision, thinking
+ollama run deepseek-r1:14b       # hard reasoning / debugging
+ollama run gemma4:26b            # fast reasoning + vision (NVIDIA)
+ollama run gemma4:31b            # highest quality (NVIDIA)
+ollama run qwen2.5:14b           # general text (alternative)
+ollama run phi4:14b              # summarization (alternative)
+ollama list                      # see all downloaded models
+ollama ps                        # see currently loaded models
 ```
 
 **Management:**
@@ -1231,7 +1298,7 @@ Installs [VSCodium](https://vscodium.com/) and the [Continue](https://continue.d
 | Installs VSCodium | Via COPR (`zeno/vscodium`) |
 | Installs Continue extension | From Open VSX Registry |
 | Writes config | `~/.config/continue/config.json` |
-| Chat models | Qwen 2.5 Coder 14B, Qwen 2.5 14B, DeepSeek R1 14B, Phi-4 14B |
+| Chat models | Qwen 2.5 Coder 14B, Gemma 4 E4B, Qwen 2.5 14B, DeepSeek R1 14B, Phi-4 14B |
 | Autocomplete model | `qwen2.5-coder:14b` (local) |
 
 **Switching models in Continue:**
@@ -1241,6 +1308,7 @@ All four models are pre-configured. In the Continue chat panel (`Ctrl+L`), click
 | Model in dropdown | When to use |
 |---|---|
 | Qwen 2.5 Coder 14B | Default — writing and editing code |
+| Gemma 4 E4B | Image/code questions, large file context (128K), thinking mode |
 | Qwen 2.5 14B | General questions about your project |
 | DeepSeek R1 14B | Complex bugs, reasoning through logic |
 | Phi-4 14B | Summarizing code, explaining large files |
@@ -1343,8 +1411,8 @@ The local AI setup covers most daily needs, but for complex coding problems wher
 | Problem complexity | Tool |
 |---|---|
 | Quick autocomplete / inline edits | VSCodium + Continue + Ollama (local) |
-| Moderate questions about your code | Open WebUI + Ollama (local) |
-| Complex bugs, architecture, algorithms | DeepSeek in browser (free, unlimited) |
+| Moderate questions about your code | Open WebUI + Ollama (local) — try `gemma4:e4b` for image/screenshot questions |
+| Complex bugs, architecture, algorithms | `gemma4:31b` or `gemma4:26b` locally (NVIDIA), or DeepSeek in browser (free, unlimited) |
 
 </details>
 

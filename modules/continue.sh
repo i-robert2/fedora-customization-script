@@ -39,6 +39,12 @@ mod_continue() {
       "apiBase": "http://localhost:11434"
     },
     {
+      "title": "Gemma 4 E4B (multimodal/thinking)",
+      "provider": "ollama",
+      "model": "gemma4:e4b",
+      "apiBase": "http://localhost:11434"
+    },
+    {
       "title": "Qwen 2.5 14B (local)",
       "provider": "ollama",
       "model": "qwen2.5:14b",

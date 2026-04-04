@@ -64,7 +64,17 @@ mod_ollama() {
         echo "  phi4:14b ready."
     fi
 
-    # On NVIDIA: also pull the larger 32B model for text tasks
+    # --- Google Gemma 4 models (Apache 2.0, multimodal, thinking mode) ---
+    # Gemma 4 E4B — 128K context, vision+audio, thinking mode, great all-rounder
+    if ollama list | grep -q 'gemma4:e4b'; then
+        echo "  gemma4:e4b already pulled, skipping."
+    else
+        echo "  Pulling gemma4:e4b (multimodal/thinking, ~9.6 GB)..."
+        ollama pull gemma4:e4b
+        echo "  gemma4:e4b ready."
+    fi
+
+    # On NVIDIA: also pull the larger models
     if [[ "$has_nvidia" == true ]]; then
         if ollama list | grep -q 'qwen2.5:32b'; then
             echo "  qwen2.5:32b already pulled, skipping."
@@ -72,6 +82,24 @@ mod_ollama() {
             echo "  Pulling qwen2.5:32b (text/summary large, ~20 GB)..."
             ollama pull qwen2.5:32b
             echo "  qwen2.5:32b ready."
+        fi
+
+        # Gemma 4 26B MoE — 256K context, vision, thinking, only 3.8B active params
+        if ollama list | grep -q 'gemma4:26b'; then
+            echo "  gemma4:26b already pulled, skipping."
+        else
+            echo "  Pulling gemma4:26b (MoE multimodal/reasoning, ~18 GB)..."
+            ollama pull gemma4:26b
+            echo "  gemma4:26b ready."
+        fi
+
+        # Gemma 4 31B Dense — 256K context, vision, highest quality
+        if ollama list | grep -q 'gemma4:31b'; then
+            echo "  gemma4:31b already pulled, skipping."
+        else
+            echo "  Pulling gemma4:31b (dense flagship, ~20 GB)..."
+            ollama pull gemma4:31b
+            echo "  gemma4:31b ready."
         fi
     fi
 
