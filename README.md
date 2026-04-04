@@ -1298,10 +1298,15 @@ aplay speech.wav
 
 **Usage — Kokoro:**
 
-```python
-import kokoro
-# See kokoro documentation for API usage
+```bash
+# Generate speech (uses af_heart voice by default)
+echo 'Hello world' | kokoro-tts speech.wav
+
+# Play it
+aplay speech.wav
 ```
+
+> **Note:** All TTS engines output mono audio (single channel) — this is standard for speech synthesis. To convert to stereo (e.g., for video editing): `ffmpeg -i speech.wav -ac 2 speech-stereo.wav`
 
 **Usage — F5-TTS (NVIDIA only, voice cloning):**
 
