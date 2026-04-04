@@ -88,7 +88,7 @@ exec "$HOME/.local/share/kokoro-venv/bin/python" -c "
 import sys
 from kokoro import KPipeline
 pipeline = KPipeline(lang_code='a')
-for audio, _ in pipeline(sys.stdin.read()):
+for audio, _ in pipeline(sys.stdin.read(), voice='af_heart'):
     import soundfile as sf
     sf.write(sys.argv[1] if len(sys.argv) > 1 else 'kokoro-out.wav', audio, 24000)
     break
