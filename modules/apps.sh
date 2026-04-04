@@ -67,6 +67,43 @@ mod_apps() {
         echo "  Kdenlive installed."
     fi
 
+    # --- VLC (dnf — needs RPM Fusion for full codec support) ---
+    if command -v vlc &>/dev/null; then
+        echo "  VLC is already installed, skipping."
+    else
+        echo "  Installing VLC..."
+        # RPM Fusion is set up by the Jellyfin block below if not already present
+        if ! rpm -q rpmfusion-free-release &>/dev/null; then
+            sudo dnf install -y \
+                "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
+                "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
+        fi
+        sudo dnf install -y vlc
+        echo "  VLC installed."
+    fi
+
+    # --- Google Chrome (official repo) ---
+    if command -v google-chrome-stable &>/dev/null; then
+        echo "  Google Chrome is already installed, skipping."
+    else
+        echo "  Installing Google Chrome..."
+        sudo dnf install -y fedora-workstation-repositories 2>/dev/null || true
+        sudo dnf config-manager setopt google-chrome.enabled=1 2>/dev/null || true
+        # Fallback: add repo manually if fedora-workstation-repositories didn't work
+        if ! dnf repolist | grep -q google-chrome; then
+            sudo tee /etc/yum.repos.d/google-chrome.repo > /dev/null <<'REPO'
+[google-chrome]
+name=google-chrome
+baseurl=https://dl.google.com/linux/chrome/rpm/stable/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://dl.google.com/linux/linux_signing_key.pub
+REPO
+        fi
+        sudo dnf install -y google-chrome-stable
+        echo "  Google Chrome installed."
+    fi
+
     # --- Jellyfin (via RPM Fusion — no auto-start, manual launch via desktop shortcut) ---
     if rpm -q jellyfin &>/dev/null; then
         echo "  Jellyfin is already installed, skipping."

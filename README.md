@@ -51,7 +51,7 @@ After it finishes, **log out and back in** so keybindings, window animations, an
 | 14 | `tiling` | Tiling with gaps, quarter tiles, white borders |
 | 15 | `topbar` | Fedora logo menu, Vitals, Weather, centered clock, tray, Super+A App Grid |
 | 16 | `appgrid` | Organize app grid into 5 category folders |
-| 17 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, Jellyfin, Reactive Resume, KVM/QEMU |
+| 17 | `apps` | Discord, GIMP, Krita, Drawing, darktable, digiKam, Kdenlive, VLC, Chrome, Jellyfin, Reactive Resume, KVM/QEMU |
 | 18 | `gitlab` | GitLab CE — self-hosted via Podman with HTTPS (manual start) |
 | 19 | `cicd` | GitLab Runner + SSH deploy key for CI/CD pipelines |
 | 20 | `vmops` | SSH helpers + Ansible playbooks for managing KVM/QEMU VMs |
