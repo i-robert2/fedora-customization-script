@@ -10,7 +10,7 @@ mod_appgrid() {
     # Order matters: an app goes into the first folder that matches.
     # Explicit 'apps' entries always win over 'categories' matching.
     gsettings set "$FOLDER_SCHEMA" folder-children \
-        "['Dev', 'Office', 'Media', 'System', 'Accessories']"
+        "['Dev', 'Office', 'Internet', 'Media', 'System', 'Accessories']"
 
     # ── Dev ────────────────────────────────────────────────────────────
     # Explicit list only — terminals and dev tools have System category,
@@ -49,7 +49,25 @@ mod_appgrid() {
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Office/" categories \
         "['Office', 'Calendar', 'ContactManagement']"
     echo "  Office folder created."
-
+    # ── Internet ─────────────────────────────────────────────────────────────
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Internet/" name 'Internet'
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Internet/" apps \
+        "['firefox.desktop', \
+          'org.mozilla.firefox.desktop', \
+          'google-chrome.desktop', \
+          'org.torproject.torbrowser-launcher.desktop', \
+          'org.mozilla.Thunderbird.desktop', \
+          'thunderbird.desktop', \
+          'org.signal.Signal.desktop', \
+          'com.discordapp.Discord.desktop', \
+          'org.qbittorrent.qBittorrent.desktop', \
+          'qbittorrent.desktop']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Internet/" categories \
+        "['WebBrowser', 'Email', 'Chat', 'InstantMessaging', 'IRCClient', \
+          'P2P', 'Network']"
+    gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Internet/" excluded-apps \
+        "['org.gnome.Connections.desktop']"
+    echo "  Internet folder created."
     # ── Media ──────────────────────────────────────────────────────────
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" name 'Media'
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" apps \
@@ -67,7 +85,11 @@ mod_appgrid() {
           'org.gnome.eog.desktop', \
           'eog.desktop', \
           'simple-scan.desktop', \
-          'org.gnome.SimpleScan.desktop']"
+          'org.gnome.SimpleScan.desktop', \
+          'vlc.desktop', \
+          'org.videolan.VLC.desktop', \
+          'audacity.desktop', \
+          'org.audacityteam.Audacity.desktop']"
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" categories \
         "['Audio', 'Video', 'AudioVideo', 'Graphics', 'Photography', 'Scanning']"
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Media/" excluded-apps \
@@ -90,6 +112,8 @@ mod_appgrid() {
           'org.gnome.Yelp.desktop', \
           'org.gnome.tweaks.desktop', \
           'com.mattjakeman.ExtensionManager.desktop', \
+          'com.github.tchx84.Flatseal.desktop', \
+          'gparted.desktop', \
           'org.gnome.baobab.desktop', \
           'org.freedesktop.MalcontentControl.desktop', \
           'malcontent-control.desktop', \
@@ -109,7 +133,17 @@ mod_appgrid() {
           'org.gnome.Terminal.desktop', \
           'htop.desktop', \
           'btop.desktop', \
-          'org.gnome.Nautilus.desktop']"
+          'org.gnome.Nautilus.desktop', \
+          'com.discordapp.Discord.desktop', \
+          'firefox.desktop', \
+          'org.mozilla.firefox.desktop', \
+          'google-chrome.desktop', \
+          'org.torproject.torbrowser-launcher.desktop', \
+          'thunderbird.desktop', \
+          'org.mozilla.Thunderbird.desktop', \
+          'org.signal.Signal.desktop', \
+          'org.qbittorrent.qBittorrent.desktop', \
+          'qbittorrent.desktop']"
     echo "  System folder created."
 
     # ── Accessories (catch-all — broad Utility category goes last) ────

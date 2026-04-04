@@ -377,8 +377,9 @@ Powered by Tiling Assistant with **12px symmetric gaps** on all sides.
 |---|---|
 | **Dev** | VS Code, Ghostty, Terminal, htop, btop |
 | **Office** | LibreOffice suite, Calendar, Maps, Weather, Contacts |
-| **Media** | Videos, Music, Photos, Screenshot tools |
-| **System** | Settings, System Monitor, Disks, Tweaks, Logs |
+| **Internet** | Firefox, Chrome, Tor Browser, Thunderbird, Signal, Discord, qBittorrent |
+| **Media** | Videos, Music, Photos, VLC, Audacity, Screenshot tools |
+| **System** | Settings, System Monitor, Disks, Tweaks, Logs, Flatseal, GParted |
 | **Accessories** | Text Editor, Calculator, Files, Archive Manager |
 
 </details>
