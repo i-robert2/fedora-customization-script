@@ -19,6 +19,9 @@ mod_tools() {
         [tesseract]="tesseract" # OCR engine for images
         [ocrmypdf]="ocrmypdf"   # adds searchable text layer to scanned PDFs
         [exiftool]="perl-Image-ExifTool" # metadata viewer/stripper for files
+        [gparted]="gparted"   # graphical partition editor
+        [7z]="p7zip-plugins"  # extract/create 7z, zip, rar, tar, iso and more
+        [file-roller]="file-roller" # GNOME archive manager GUI
     )
 
     local to_install=()

@@ -12,6 +12,16 @@ mod_apps() {
         echo "  Discord installed."
     fi
 
+    # --- Tor Browser (Flatpak — sandboxed, auto-updated) ---
+    if flatpak info com.github.nickvergessen.TorBrowser &>/dev/null 2>&1 || flatpak info org.torproject.torbrowser-launcher &>/dev/null 2>&1; then
+        echo "  Tor Browser is already installed, skipping."
+    else
+        echo "  Installing Tor Browser via Flatpak..."
+        flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        flatpak install --user -y flathub org.torproject.torbrowser-launcher
+        echo "  Tor Browser installed."
+    fi
+
     # --- GIMP (dnf) ---
     if command -v gimp &>/dev/null; then
         echo "  GIMP is already installed, skipping."
@@ -102,6 +112,77 @@ REPO
         fi
         sudo dnf install -y google-chrome-stable
         echo "  Google Chrome installed."
+    fi
+
+    # --- Thunderbird (dnf) ---
+    if command -v thunderbird &>/dev/null; then
+        echo "  Thunderbird is already installed, skipping."
+    else
+        echo "  Installing Thunderbird..."
+        sudo dnf install -y thunderbird
+        echo "  Thunderbird installed."
+    fi
+
+    # --- Audacity (dnf) ---
+    if command -v audacity &>/dev/null; then
+        echo "  Audacity is already installed, skipping."
+    else
+        echo "  Installing Audacity..."
+        sudo dnf install -y audacity
+        echo "  Audacity installed."
+    fi
+
+    # --- qBittorrent (dnf) ---
+    if command -v qbittorrent &>/dev/null; then
+        echo "  qBittorrent is already installed, skipping."
+    else
+        echo "  Installing qBittorrent..."
+        sudo dnf install -y qbittorrent
+        echo "  qBittorrent installed."
+    fi
+
+    # --- Flatseal (Flatpak — manage Flatpak app permissions) ---
+    if flatpak info com.github.tchx84.Flatseal &>/dev/null 2>&1; then
+        echo "  Flatseal is already installed, skipping."
+    else
+        echo "  Installing Flatseal via Flatpak..."
+        flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        flatpak install --user -y flathub com.github.tchx84.Flatseal
+        echo "  Flatseal installed."
+    fi
+
+    # --- Signal (Flatpak — sandboxed, auto-updated) ---
+    if flatpak info org.signal.Signal &>/dev/null 2>&1; then
+        echo "  Signal is already installed, skipping."
+    else
+        echo "  Installing Signal via Flatpak..."
+        flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        flatpak install --user -y flathub org.signal.Signal
+        echo "  Signal installed."
+    fi
+
+    # --- Docker (official repo) ---
+    if command -v docker &>/dev/null; then
+        echo "  Docker is already installed, skipping."
+    else
+        echo "  Installing Docker..."
+        sudo dnf -y install dnf-plugins-core
+        sudo tee /etc/yum.repos.d/docker-ce.repo > /dev/null <<'REPO'
+[docker-ce-stable]
+name=Docker CE Stable - $basearch
+baseurl=https://download.docker.com/linux/fedora/$releasever/$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/fedora/gpg
+REPO
+        sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        sudo systemctl enable --now docker
+        # Add current user to docker group for rootless usage
+        if ! groups "$USER" | grep -q docker; then
+            sudo usermod -aG docker "$USER"
+            echo "  NOTE: Log out and back in for Docker group membership to take effect."
+        fi
+        echo "  Docker installed."
     fi
 
     # --- Jellyfin (via RPM Fusion — no auto-start, manual launch via desktop shortcut) ---
