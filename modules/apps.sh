@@ -92,6 +92,15 @@ mod_apps() {
         echo "  VLC installed."
     fi
 
+    # --- Calibre (dnf — ebook manager + reader + converter) ---
+    if command -v calibre &>/dev/null; then
+        echo "  Calibre is already installed, skipping."
+    else
+        echo "  Installing Calibre..."
+        sudo dnf install -y calibre
+        echo "  Calibre installed."
+    fi
+
     # --- Google Chrome (official repo) ---
     if command -v google-chrome-stable &>/dev/null; then
         echo "  Google Chrome is already installed, skipping."

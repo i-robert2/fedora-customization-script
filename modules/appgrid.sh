@@ -45,7 +45,8 @@ mod_appgrid() {
           'org.gnome.Clocks.desktop', \
           'org.gnome.clocks.desktop', \
           'org.gnome.Evince.desktop', \
-          'evince.desktop']"
+          'evince.desktop', \
+          'calibre-gui.desktop']"
     gsettings set "$FOLDER_CHILD:$FOLDER_PATH/Office/" categories \
         "['Office', 'Calendar', 'ContactManagement']"
     echo "  Office folder created."
