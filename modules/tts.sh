@@ -70,6 +70,15 @@ mod_tts() {
             echo "  Using $py_bin for Kokoro virtualenv..."
             "$py_bin" -m venv "$kokoro_venv"
             "$kokoro_venv/bin/pip" install --upgrade pip
+
+            # Install CPU-only PyTorch first to avoid downloading ~1 GB of unused CUDA libraries.
+            # On NVIDIA systems, install the CUDA version instead.
+            if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+                "$kokoro_venv/bin/pip" install torch --index-url https://download.pytorch.org/whl/cu124
+            else
+                "$kokoro_venv/bin/pip" install torch --index-url https://download.pytorch.org/whl/cpu
+            fi
+
             if "$kokoro_venv/bin/pip" install kokoro soundfile; then
                 # Create a wrapper so kokoro is importable from a simple script
                 mkdir -p "$HOME/.local/bin"
