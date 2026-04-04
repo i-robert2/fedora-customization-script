@@ -4,9 +4,17 @@ mod_continue() {
 
     # --- Install VSCodium if not present ---
     if ! command -v codium &>/dev/null; then
-        echo "  VSCodium not found. Installing via COPR..."
-        sudo dnf install -y 'dnf-command(copr)'
-        sudo dnf copr enable -y zeno/vscodium
+        echo "  VSCodium not found. Installing via official repo..."
+        sudo tee /etc/yum.repos.d/vscodium.repo > /dev/null <<'REPO'
+[gitlab.com_paulcarroty_vscodium_packages]
+name=gitlab.com_paulcarroty_vscodium_packages
+baseurl=https://download.vscodium.com/rpms/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg
+metadata_expire=1h
+REPO
         sudo dnf install -y codium
         echo "  VSCodium installed."
     else
