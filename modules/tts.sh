@@ -8,6 +8,12 @@ mod_tts() {
         sudo dnf install -y python3 python3-pip python3-venv
     fi
 
+    # Ensure Python headers are available (needed for numpy/kokoro compilation)
+    if ! rpm -q python3-devel &>/dev/null; then
+        echo "  Installing python3-devel (build headers)..."
+        sudo dnf install -y python3-devel gcc gcc-c++
+    fi
+
     # --- Install Piper TTS (fast, lightweight, real-time on CPU) ---
     if command -v piper &>/dev/null || pip show piper-tts &>/dev/null 2>&1; then
         echo "  Piper TTS is already installed, skipping."
