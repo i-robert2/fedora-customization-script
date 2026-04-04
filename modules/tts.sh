@@ -86,14 +86,11 @@ mod_tts() {
 #!/usr/bin/env bash
 exec "$HOME/.local/share/kokoro-venv/bin/python" -c "
 import sys
-import numpy as np
 from kokoro import KPipeline
 pipeline = KPipeline(lang_code='a')
 for result in pipeline(sys.stdin.read(), voice='af_heart'):
     import soundfile as sf
-    audio = np.array(result[0])
-    if audio.ndim == 1:
-        audio = audio.reshape(-1, 1)
+    audio = result[2].numpy()
     sf.write(sys.argv[1] if len(sys.argv) > 1 else 'kokoro-out.wav', audio, 24000)
     break
 print('Saved to', sys.argv[1] if len(sys.argv) > 1 else 'kokoro-out.wav')
