@@ -1015,6 +1015,36 @@ Models ≤12 GB fit entirely in VRAM for maximum speed. Larger models use partia
 
 The 26B MoE is the best "stretch" model — its architecture means partial offload works better than dense models. Disk needed: ~104 GB for all 8 models.
 
+#### Future Upgrade Guide
+
+**PC — upgrade priority:**
+
+| Priority | Upgrade | Why | Impact |
+|---|---|---|---|
+| 🥇 1st | **GPU → 16 GB VRAM** (e.g., RTX 4070 Ti Super, RTX 5070 Ti) | 12 GB VRAM is the main bottleneck — 26B/31B/32B models spill into system RAM, halving speed | 26B–31B models: **2-3x faster**. ComfyUI SDXL: faster renders. 14B models: unchanged. |
+| 🥈 2nd | **RAM → 64 GB DDR5** | When large models partially offload, they eat system RAM. 64 GB lets you run a 31B model + ComfyUI + containers simultaneously without swapping | Multi-model + multi-app workflows without slowdowns |
+| 🏆 Dream | **GPU → 32 GB VRAM** (e.g., RTX 5090) | Every model fits entirely in VRAM. `gemma4:31b` (20 GB) runs at full GPU speed | Maximum speed on everything. No offloading ever. |
+
+The i9-12900KS CPU is not a bottleneck — don't touch it.
+
+**Laptop — upgrade priority:**
+
+| Priority | Upgrade | Why | Impact |
+|---|---|---|---|
+| 🥇 1st | **RAM → 64 GB DDR5** (if user-upgradeable) | More RAM = run 26B–31B models comfortably + keep browser/apps open | 26B models go from "close everything" to comfortable |
+| 🥈 Optional | **eGPU enclosure + desktop GPU** (Thunderbolt 4) | GPU inference on the laptop at ~70% of desktop GPU speed | 14B models: ~15 → ~25-30 tok/s. Expensive (~$300 enclosure + GPU). |
+
+The 8845HS CPU is already top-tier for CPU inference — not upgradeable internally.
+
+**When to upgrade:**
+
+| Trigger | Action |
+|---|---|
+| Always waiting on 26B/31B responses on PC | GPU → 16 GB VRAM |
+| Can't run Ollama + ComfyUI + containers simultaneously on PC | RAM → 64 GB |
+| Want 26B+ models comfortably on laptop | RAM → 64 GB |
+| New model generation drops (Gemma 5, Qwen 3, etc.) with 40-50B sweet spots | GPU upgrade becomes more urgent |
+
 ### Prerequisites
 
 On **NVIDIA systems**, install the proprietary drivers before running the AI modules so that GPU detection works:
